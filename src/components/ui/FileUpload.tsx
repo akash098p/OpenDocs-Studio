@@ -41,16 +41,35 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     if (e.currentTarget.contains(e.relatedTarget as Node)) return
     setIsDragging(false)
   }
+  const mergeFiles = (incoming: File[]) => {
+    if (!multiple) {
+      onFilesChange([incoming[0]])
+      return
+    }
+    // Multi-file inputs append to the list (deduped) so batches can be built up across drops.
+    const seen = new Set(value.map((f) => `${f.name}:${f.size}`))
+    const merged = [...value]
+    for (const file of incoming) {
+      const key = `${file.name}:${file.size}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(file)
+      }
+    }
+    onFilesChange(merged)
+  }
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault(); e.stopPropagation(); setIsDragging(false)
     const dropped = Array.from(e.dataTransfer.files)
     const filtered = dropped.filter((f) => matchesAccept(f, accept))
-    if (filtered.length) onFilesChange(filtered)
+    if (filtered.length) mergeFiles(filtered)
   }
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selected = Array.from(e.target.files).filter((f) => matchesAccept(f, accept))
-      if (selected.length) onFilesChange(selected)
+      if (selected.length) mergeFiles(selected)
+      e.target.value = ''
     }
   }
   const handleRemoveFile = (index: number) => {

@@ -40,8 +40,8 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Format Converter',
     group: 'Image',
     icon: '/tools-icons/image format convert.png',
-    description: 'Re-encode an image cleanly to JPG, PNG or WebP.',
-    inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
+    description: 'Re-encode one or more images cleanly to JPG, PNG or WebP — results download individually or as a ZIP.',
+    inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'format', label: 'Output format', type: 'select', options: ['jpg', 'png', 'webp'], default: 'png' },
       { name: 'quality', label: 'Quality (lossy formats)', type: 'number', default: 90, min: 1, max: 100, step: 1 },

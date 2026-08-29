@@ -3,6 +3,7 @@ import {
   canvasToBlob,
   fileExtension,
   getFile,
+  getFiles,
   loadImage,
   mimeFor,
   numberParam,
@@ -127,18 +128,24 @@ export const imageCompress = async (files: ToolFile[], params: ToolParams, onPro
 export const imageConvert = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const quality = numberParam(params, 'quality', 90) / 100
   const format = stringParam(params, 'format', 'png')
-  const file = getFile(files, 'image')
-
-  onProgress?.(10, 'Loading image…')
-  const image = await loadImage(file.blob)
-  const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const images = getFiles(files, 'image')
+  if (!images.length) throw new Error('Provide at least one image.')
 
   const mime = mimeFor(format)
   const outQuality = format === 'png' || format === 'bmp' ? undefined : Math.max(0.1, Math.min(1, quality))
-  onProgress?.(50, 'Converting…')
-  const blob = await canvasToBlob(canvas, mime, outQuality)
+
+  const outputs: ToolOutput[] = []
+  for (let i = 0; i < images.length; i += 1) {
+    const file = images[i]
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}…`)
+    const image = await loadImage(file.blob)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+    const blob = await canvasToBlob(canvas, mime, outQuality)
+    outputs.push({ name: `converted-${file.name.replace(/\.[^.]+$/, '')}.${format}`, blob })
+  }
+
   onProgress?.(100, 'Done.')
-  return [{ name: `converted-${file.name.replace(/\.[^.]+$/, '')}.${format}`, blob }]
+  return outputs
 }
 // ---------------------------------------------------------------------------
 // Add Watermark
