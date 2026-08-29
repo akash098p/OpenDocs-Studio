@@ -345,11 +345,11 @@ const compressPdfToTargetSize = async (
 }
 
 export const pdfCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  const mode = stringParam(params, 'mode', 'percentage') === 'targetSize' ? 'targetSize' : 'percentage'
-  const qualityPct = Math.max(1, Math.min(100, numberParam(params, 'quality', 75)))
-  const target = targetBytesPdf(numberParam(params, 'targetSize', 500), stringParam(params, 'targetUnit', 'KB'))
-  const pdfs = getFiles(files, 'pdf')
-  if (!pdfs.length) throw new Error('Provide at least one PDF.')
+  const mode = stringParam(params, "mode", "percentage") === "targetSize" ? "targetSize" : "percentage"
+  const qualityPct = Math.max(1, Math.min(100, numberParam(params, "quality", 60)))
+  const target = targetBytesPdf(numberParam(params, "targetSize", 500), stringParam(params, "targetUnit", "KB"))
+  const pdfs = getFiles(files, "pdf")
+  if (!pdfs.length) throw new Error("Provide at least one PDF.")
 
   const outputs: ToolOutput[] = []
   for (let i = 0; i < pdfs.length; i += 1) {
@@ -357,23 +357,33 @@ export const pdfCompress = async (files: ToolFile[], params: ToolParams, onProgr
     onProgress?.(Math.round((i / pdfs.length) * 95) + 5, `Compressing ${i + 1}/${pdfs.length}`)
 
     let blob: Blob
-    if (mode === 'targetSize') {
-      blob = await compressPdfToTargetSize(file, target, (p, m) => {
-        const base = Math.round((i / pdfs.length) * 90) + 5
-        onProgress?.(base + Math.round(p * 0.1), m)
-      })
+    if (mode === "targetSize") {
+      // If the source is already smaller than the target, return the source untouched.
+      if (file.blob.size <= target) {
+        onProgress?.(Math.round((i / pdfs.length) * 95) + 5, "Source already under target - keeping original")
+        blob = file.blob
+      } else {
+        blob = await compressPdfToTargetSize(file, target, (p, m) => {
+          const base = Math.round((i / pdfs.length) * 90) + 5
+          onProgress?.(base + Math.round(p * 0.1), m)
+        })
+        // If our re-encoded version is still larger than the source, keep the source.
+        if (blob.size > file.blob.size) blob = file.blob
+      }
     } else {
       blob = await compressPdfByQuality(file, qualityPct, (p, m) => {
         const base = Math.round((i / pdfs.length) * 90) + 5
         onProgress?.(base + Math.round(p * 0.1), m)
       })
+      // Re-encoding only helps if it shrinks. Otherwise return the source unchanged.
+      if (blob.size > file.blob.size) blob = file.blob
     }
 
-    outputs.push({ name: `compressed-${sanitizeFilename(fileName(file.name) || 'doc')}.pdf`, blob })
+    outputs.push({ name: `compressed-${sanitizeFilename(fileName(file.name) || "doc")}.pdf`, blob })
   }
 
-  onProgress?.(100, 'Done.')
-  return outputs.length === 1 ? outputs : [{ name: 'compressed-pdfs.zip', blob: await makeZip(outputs) }]
+  onProgress?.(100, "Done.")
+  return outputs.length === 1 ? outputs : [{ name: "compressed-pdfs.zip", blob: await makeZip(outputs) }]
 }
 
 // ---------------------------------------------------------------------------
