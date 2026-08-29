@@ -1,4 +1,4 @@
-import { ToolDefinition } from './types'
+﻿import { ToolDefinition } from './types'
 
 export const toolDefinitions: ToolDefinition[] = [
   {
@@ -6,7 +6,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Crop & Rotate',
     group: 'Image',
     icon: '/tools-icons/image crop.png',
-    description: 'Visually crop a region and rotate the image (0°, 90°, 180°, 270°) with a live preview before exporting.',
+    description: 'Visually crop a region and rotate the image (0Â°, 90Â°, 180Â°, 270Â°) with a live preview before exporting.',
     inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
     fields: [],
     visualEditor: true,
@@ -17,7 +17,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Resize',
     group: 'Image',
     icon: '/tools-icons/image resize.png',
-    description: 'Visually rescale an image by dragging a handle over the original — exact size or fit-inside box, with aspect-ratio lock and a live preview.',
+    description: 'Visually rescale an image by dragging a handle over the original â€” exact size or fit-inside box, with aspect-ratio lock and a live preview.',
     inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
     fields: [],
     visualEditor: true,
@@ -28,7 +28,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Compressor',
     group: 'Image',
     icon: '/tools-icons/image compressor.png',
-    description: 'Compress one or more images by quality percentage or target file size — results download individually or as a ZIP.',
+    description: 'Compress one or more images by quality percentage or target file size â€” results download individually or as a ZIP.',
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'mode', label: 'Compression mode', type: 'select', options: ['percentage', 'targetSize'], default: 'percentage' },
@@ -43,7 +43,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Format Converter',
     group: 'Image',
     icon: '/tools-icons/image format convert.png',
-    description: 'Re-encode one or more images cleanly to JPG, PNG or WebP — results download individually or as a ZIP.',
+    description: 'Re-encode one or more images cleanly to JPG, PNG or WebP â€” results download individually or as a ZIP.',
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'format', label: 'Output format', type: 'select', options: ['jpg', 'png', 'webp'], default: 'png' },
@@ -55,7 +55,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Add Watermark / Overlay',
     group: 'Image',
     icon: '/tools-icons/add watermark.png',
-    description: 'Overlay a graphic and/or text branding onto an image — pick any font and color for the text.',
+    description: 'Overlay a graphic and/or text branding onto an image â€” pick any font and color for the text.',
     inputs: [
       { name: 'image', label: 'Base image', accept: 'image/*' },
       { name: 'watermark', label: 'Overlay image (optional)', accept: 'image/*', optional: true },
@@ -86,7 +86,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Batch Image Renamer',
     group: 'Image',
     icon: '/tools-icons/batch image renamer.png',
-    description: 'Sanitize and rename many images at once — returns a ZIP of the renamed files.',
+    description: 'Sanitize and rename many images at once â€” returns a ZIP of the renamed files.',
     inputs: [{ name: 'images', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'prefix', label: 'Prefix', type: 'text', default: '' },
@@ -102,7 +102,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Custom Album Creator',
     group: 'Image',
     icon: '/tools-icons/custom album creator.png',
-    description: 'Design a photo album visually — pick a template (grid, polaroid, film strip and more), style it, and preview it live.',
+    description: 'Design a photo album visually â€” pick a template (grid, polaroid, film strip and more), style it, and preview it live.',
     inputs: [{ name: 'images', label: 'Photos', accept: 'image/*', multiple: true }],
     fields: [],
     visualEditor: true,
@@ -131,12 +131,11 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'PDF Page Rotator',
     group: 'PDF',
     icon: '/tools-icons/pdf page rotator.png',
-    description: 'Rotate all pages (or a single page) by 90° / 180° / 270°.',
+    description: 'Rotate pages by 90deg / 180deg / 270deg. Use page ranges like 1-3,5,7-9 - or leave blank to rotate every page.',
     inputs: [{ name: 'pdf', label: 'PDF file', accept: 'application/pdf' }],
     fields: [
       { name: 'degrees', label: 'Rotation', type: 'select', options: ['90', '180', '270'], default: '90' },
-      { name: 'all', label: 'Apply to', type: 'select', options: ['all-pages', 'single-page'], default: 'all-pages' },
-      { name: 'page', label: 'Page number (if single)', type: 'number', default: 1, min: 1, step: 1 },
+      { name: 'pages', label: 'Pages (e.g. 1-3,5,7-9)', type: 'text', default: 'all' },
     ],
   },
   {
@@ -153,7 +152,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'PDF Compressor',
     group: 'PDF',
     icon: '/tools-icons/pdf compressor.png',
-    description: 'Compress one or more PDFs by quality percentage or target file size — results download individually or as a ZIP.',
+    description: 'Compress one or more PDFs by quality percentage or target file size â€” results download individually or as a ZIP.',
     inputs: [{ name: 'pdf', label: 'PDF files', accept: 'application/pdf', multiple: true }],
     fields: [
       { name: 'mode', label: 'Compression mode', type: 'select', options: ['percentage', 'targetSize'], default: 'percentage' },

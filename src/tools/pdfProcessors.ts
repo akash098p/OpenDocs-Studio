@@ -94,37 +94,51 @@ export const pdfSplit = async (files: ToolFile[], params: ToolParams, onProgress
   return [{ name: `${base}-split.zip`, blob: zip }]
 }
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // PDF Page Rotator
+//   `pages` accepts ranges like PDF Splitter: e.g. "1-3,5,7-9".
+//   Ranges are inclusive and comma-separated. Empty or "all" rotates every page.
 // ---------------------------------------------------------------------------
 const turnDegrees = (current: number, delta: number): number => (((current + delta) % 360) + 360) % 360
 
 export const pdfRotate = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const file = getFile(files, 'pdf')
   const degreesParam = ((numberParam(params, 'degrees', 90) % 360) + 360) % 360
-  const all = stringParam(params, 'all', 'all-pages')
-  const pageNum = numberParam(params, 'page', 1)
+  const pagesParam = stringParam(params, 'pages', 'all')
 
   onProgress?.(10, 'Loading PDF...')
   const doc = await loadPdf(file.blob)
+  const total = doc.getPageCount()
 
-  if (all === 'single-page') {
-    const index = pageNum - 1
-    if (index < 0 || index >= doc.getPageCount()) {
-      throw new Error(`Page ${pageNum} does not exist (document has 1-${doc.getPageCount()}).`)
-    }
-    const page = doc.getPage(index)
+  // Empty / "all" -> apply to every page; otherwise parse the range list.
+  const isAll = !pagesParam.trim() || pagesParam.trim().toLowerCase() === 'all'
+  const indices: number[] = isAll
+    ? Array.from({ length: total }, (_, k) => k)
+    : (() => {
+        const ranges = parseRanges(pagesParam)
+        const result = new Set<number>()
+        for (const [a, b] of ranges) {
+          if (a < 1 || b < 1 || a > b || b > total) {
+            throw new Error(`Page range ${a}-${b} out of bounds (document has 1-${total}).`)
+          }
+          for (let k = a; k <= b; k += 1) result.add(k - 1)
+        }
+        return [...result].sort((x, y) => x - y)
+      })()
+
+  if (!indices.length) throw new Error('No valid pages to rotate.')
+
+  onProgress?.(40, `Rotating ${indices.length} page${indices.length === 1 ? '' : 's'}...`)
+  indices.forEach((idx) => {
+    const page = doc.getPage(idx)
     page.setRotation(degrees(turnDegrees(page.getRotation().angle, degreesParam)))
-  } else {
-    doc.getPages().forEach((page) => page.setRotation(degrees(turnDegrees(page.getRotation().angle, degreesParam))))
-  }
+  })
 
-  onProgress?.(60, 'Saving...')
+  onProgress?.(80, 'Saving...')
   const blob = await savePdf(doc)
   onProgress?.(100, 'Done.')
   return [{ name: `rotated-${file.name.replace(/\.[^.]+$/, '')}.pdf`, blob }]
 }
-
-// ---------------------------------------------------------------------------
 // Images to PDF
 // ---------------------------------------------------------------------------
 export const imagesToPdf = async (files: ToolFile[], _params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
