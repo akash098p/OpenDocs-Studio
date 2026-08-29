@@ -6,6 +6,7 @@ import {
   getFile,
   getFiles,
   loadImage,
+  makeZip,
   mimeFor,
   numberParam,
   sanitizeFilename,
@@ -92,35 +93,100 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
 
 // ---------------------------------------------------------------------------
 // Image Compress
+//   - mode = 'percentage' → use the given quality (1–100) directly
+//   - mode = 'targetSize' → binary-search the lowest quality that fits the
+//     given target size in KB or MB. Falls back to the best quality if the
+//     target is unreachable (e.g. already too small or PNG output).
 // ---------------------------------------------------------------------------
+const targetBytes = (size: number, unit: string): number => {
+  const n = Math.max(1, Number(size) || 0)
+  return unit === 'MB' ? Math.round(n * 1024 * 1024) : Math.round(n * 1024)
+}
+
+const isLossyExt = (ext: string): boolean => ext === 'jpg' || ext === 'jpeg' || ext === 'webp'
+
+const lossyMime = (ext: string): string | null => {
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg'
+  if (ext === 'webp') return 'image/webp'
+  return null
+}
+
+const compressAtQuality = async (
+  canvas: HTMLCanvasElement,
+  mime: string,
+  quality: number,
+): Promise<Blob> => {
+  if (mime === 'image/png' || mime === 'image/bmp') {
+    return canvasToBlob(canvas, mime)
+  }
+  return canvasToBlob(canvas, mime, Math.max(0.05, Math.min(1, quality)))
+}
+
+const findQualityForTargetSize = async (
+  canvas: HTMLCanvasElement,
+  mime: string,
+  target: number,
+): Promise<Blob> => {
+  // Start with the best possible quality and step down in halves.
+  let low = 0.05
+  let high = 0.95
+  let best: Blob | null = null
+  for (let iter = 0; iter < 7; iter += 1) {
+    const q = (low + high) / 2
+    const blob = await compressAtQuality(canvas, mime, q)
+    if (!best || blob.size < best.size) best = blob
+    if (blob.size <= target) {
+      low = q
+    } else {
+      high = q
+    }
+  }
+  // One final pass at the lower bound to be sure we land at or below target.
+  const finalBlob = await compressAtQuality(canvas, mime, low)
+  if (!best || finalBlob.size < best.size) best = finalBlob
+  return best!
+}
+
 export const imageCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  const quality = numberParam(params, 'quality', 80) / 100
+  const mode = stringParam(params, 'mode', 'percentage') === 'targetSize' ? 'targetSize' : 'percentage'
+  const qualityPct = Math.max(1, Math.min(100, numberParam(params, 'quality', 80)))
+  const target = targetBytes(numberParam(params, 'targetSize', 500), stringParam(params, 'targetUnit', 'KB'))
   const format = stringParam(params, 'format', 'auto')
-  const file = getFile(files, 'image')
-  const srcExt = fileExtension(file.name) || 'png'
-  const ext = format === 'auto' ? srcExt : format
+  const images = getFiles(files, 'image')
+  if (!images.length) throw new Error('Provide at least one image.')
 
-  onProgress?.(10, 'Loading image…')
-  const image = await loadImage(file.blob)
-  const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const outputs: ToolOutput[] = []
+  for (let i = 0; i < images.length; i += 1) {
+    const file = images[i]
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Compressing ${i + 1}/${images.length}…`)
 
-  let mime: string
-  let outQuality: number | undefined
-  if (ext === 'jpg' || ext === 'jpeg') {
-    mime = 'image/jpeg'
-    outQuality = Math.max(0.1, Math.min(1, quality * 0.9))
-  } else if (ext === 'webp') {
-    mime = 'image/webp'
-    outQuality = Math.max(0.1, Math.min(1, quality))
-  } else {
-    mime = 'image/png'
-    outQuality = undefined
+    const srcExt = fileExtension(file.name) || 'png'
+    const ext = format === 'auto' ? srcExt : format
+    const normalizedExt = ext === 'jpeg' ? 'jpg' : ext
+
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Loading ${file.name}…`)
+    const image = await loadImage(file.blob)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+
+    let blob: Blob
+    if (isLossyExt(normalizedExt)) {
+      const mime = lossyMime(normalizedExt)!
+      if (mode === 'targetSize') {
+        blob = await findQualityForTargetSize(canvas, mime, target)
+      } else {
+        const q = normalizedExt === 'jpg' || normalizedExt === 'jpeg' ? qualityPct * 0.009 : qualityPct / 100
+        blob = await compressAtQuality(canvas, mime, q)
+      }
+    } else {
+      // PNG is lossless — quality / target size have no effect on canvas encoding.
+      blob = await compressAtQuality(canvas, mimeFor(normalizedExt), 1)
+    }
+
+    outputs.push({ name: outputName(file, 'compressed', normalizedExt), blob })
   }
 
-  onProgress?.(50, 'Compressing…')
-  const blob = await canvasToBlob(canvas, mime, outQuality)
   onProgress?.(100, 'Done.')
-  return [{ name: outputName(file, 'compressed', ext === 'jpeg' ? 'jpg' : ext), blob }]
+  return outputs.length === 1 ? outputs : [{ name: 'compressed-images.zip', blob: await makeZip(outputs) }]
 }
 
 // ---------------------------------------------------------------------------
