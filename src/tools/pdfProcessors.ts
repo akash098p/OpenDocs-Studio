@@ -204,7 +204,7 @@ const renderPageToJpegBlob = async (page: any, quality: number): Promise<{ width
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   await page.getOperatorList()
-  await page.render({ canvasContext: ctx, viewport }).promise
+  await page.render({ canvasContext: ctx, viewport, canvas }).promise
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
   if (!blob) throw new Error('Could not encode rendered page.')
   return { width: canvas.width, height: canvas.height, blob }
@@ -379,6 +379,12 @@ export const pdfCompress = async (files: ToolFile[], params: ToolParams, onProgr
 // ---------------------------------------------------------------------------
 // PDF to Images - uses pdfjs-dist to render pages to canvas
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// PDF to Images - uses pdfjs-dist to render pages to canvas
+//   Returns each rendered page as its own ToolOutput so the OutputPreview
+//   pane can show inline image previews. The existing "Download All as ZIP"
+//   button in OutputPreview bundles them for a single-file download.
+// ---------------------------------------------------------------------------
 export const pdfToImages = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const file = getFile(files, 'pdf')
   const format = stringParam(params, 'format', 'png')
@@ -391,23 +397,29 @@ export const pdfToImages = async (files: ToolFile[], params: ToolParams, onProgr
   const bytes = new Uint8Array(await file.blob.arrayBuffer())
   const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
 
-  const outputs: ToolOutput[] = []
   const scale = dpi / 72
+  const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
+  const quality = mime === 'image/jpeg' ? 0.92 : undefined
+  const outputs: ToolOutput[] = []
+
   for (let i = 1; i <= pdf.numPages; i += 1) {
     onProgress?.(Math.round((i / pdf.numPages) * 90), `Rendering page ${i}/${pdf.numPages}`)
     const page = await pdf.getPage(i)
     const viewport = page.getViewport({ scale })
     const canvas = document.createElement('canvas')
-    canvas.width = Math.floor(viewport.width)
-    canvas.height = Math.floor(viewport.height)
-    const mime = format === 'jpg' ? 'image/jpeg' : 'image/png'
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, 0.92))
+    canvas.width = Math.max(1, Math.floor(viewport.width))
+    canvas.height = Math.max(1, Math.floor(viewport.height))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not create canvas context.')
+    // White background so transparent PDF content (and PNG) doesn't look black.
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, mime, quality))
     if (!blob) throw new Error('Could not encode the rendered page.')
     outputs.push({ name: `page-${String(i).padStart(3, '0')}.${format}`, blob })
   }
 
-  onProgress?.(95, 'Bundling ZIP')
-  const zip = await makeZip(outputs)
   onProgress?.(100, 'Done.')
-  return [{ name: `${file.name.replace(/\.[^.]+$/, '')}-pages.zip`, blob: zip }]
+  return outputs
 }

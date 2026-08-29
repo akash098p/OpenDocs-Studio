@@ -166,7 +166,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'PDF to Images',
     group: 'PDF',
     icon: '/tools-icons/pdf to image.png',
-    description: 'Render each PDF page to PNG or JPG in the browser (returned as a ZIP).',
+    description: 'Render each PDF page to PNG or JPG in the browser. Preview every page inline, then download individually or as a ZIP.',
     inputs: [{ name: 'pdf', label: 'PDF file', accept: 'application/pdf' }],
     fields: [
       { name: 'format', label: 'Image format', type: 'select', options: ['png', 'jpg'], default: 'png' },
