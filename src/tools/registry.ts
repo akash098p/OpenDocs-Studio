@@ -32,9 +32,9 @@ export const toolDefinitions: ToolDefinition[] = [
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'mode', label: 'Compression mode', type: 'select', options: ['percentage', 'targetSize'], default: 'percentage' },
-      { name: 'quality', label: 'Quality % (1-100)', type: 'number', default: 80, min: 1, max: 100, step: 1 },
-      { name: 'targetSize', label: 'Target size', type: 'number', default: 500, min: 1, step: 1 },
-      { name: 'targetUnit', label: 'Target unit', type: 'select', options: ['KB', 'MB'], default: 'KB' },
+      { name: 'quality', label: 'Quality % (1-100)', type: 'number', default: 75, min: 1, max: 100, step: 1, visibleWhen: { field: 'mode', equals: 'percentage' } },
+      { name: 'targetSize', label: 'Target size', type: 'number', default: 500, min: 1, step: 1, visibleWhen: { field: 'mode', equals: 'targetSize' } },
+      { name: 'targetUnit', label: 'Target unit', type: 'select', options: ['KB', 'MB'], default: 'KB', visibleWhen: { field: 'mode', equals: 'targetSize' } },
       { name: 'format', label: 'Output format', type: 'select', options: ['auto', 'jpg', 'png', 'webp'], default: 'auto' },
     ],
   },
@@ -156,9 +156,9 @@ export const toolDefinitions: ToolDefinition[] = [
     inputs: [{ name: 'pdf', label: 'PDF files', accept: 'application/pdf', multiple: true }],
     fields: [
       { name: 'mode', label: 'Compression mode', type: 'select', options: ['percentage', 'targetSize'], default: 'percentage' },
-      { name: 'quality', label: 'Quality % (1-100)', type: 'number', default: 75, min: 1, max: 100, step: 1 },
-      { name: 'targetSize', label: 'Target size', type: 'number', default: 500, min: 1, step: 1 },
-      { name: 'targetUnit', label: 'Target unit', type: 'select', options: ['KB', 'MB'], default: 'KB' },
+      { name: 'quality', label: 'Quality % (1-100)', type: 'number', default: 60, min: 1, max: 100, step: 1, visibleWhen: { field: 'mode', equals: 'percentage' } },
+      { name: 'targetSize', label: 'Target size', type: 'number', default: 500, min: 1, step: 1, visibleWhen: { field: 'mode', equals: 'targetSize' } },
+      { name: 'targetUnit', label: 'Target unit', type: 'select', options: ['KB', 'MB'], default: 'KB', visibleWhen: { field: 'mode', equals: 'targetSize' } },
     ],
   },
   {

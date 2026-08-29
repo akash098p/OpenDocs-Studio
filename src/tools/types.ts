@@ -1,4 +1,4 @@
-export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font'
+﻿export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font'
 
 export interface ToolField {
   name: string
@@ -9,7 +9,8 @@ export interface ToolField {
   max?: number
   step?: number
   options?: string[]
-  required?: boolean
+  /** When set, this field is only visible if the named field value equals the given value. */
+  visibleWhen?: { field: string; equals: string }
 }
 
 export interface ToolInput {

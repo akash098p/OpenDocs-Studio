@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+﻿import React, { useRef, useState } from 'react'
 import { Button } from '@components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@components/ui/Card'
 import { FileUpload } from '@components/ui/FileUpload'
@@ -146,7 +146,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
       if (!result.length) throw new Error('Tool produced no output.')
 
       setOutputs(result)
-      setStatus('Done — preview ready.')
+      setStatus('Done â€” preview ready.')
       setProgress(100)
       addNotification({ type: 'success', message: 'Tool completed successfully.' })
     } catch (error) {
@@ -177,7 +177,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onBack} type="button">
-            ← All tools
+            â† All tools
           </Button>
         </div>
       </CardHeader>
@@ -217,7 +217,10 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               </div>
             )}
 
-            {tool.fields.map((field) => (
+            {tool.fields.filter((field) => {
+              if (!field.visibleWhen) return true
+              return fieldValues[field.visibleWhen.field] === field.visibleWhen.equals
+            }).map((field) => (
               <div key={field.name}>
                 <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</label>
                 <ToolFieldInput field={field} value={fieldValues[field.name] ?? ''} onChange={(value) => setParam(field.name, value)} />
@@ -236,7 +239,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900">
                 <p className="font-semibold">Output appears here</p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Your files are processed entirely in this browser — nothing is uploaded anywhere.
+                  Your files are processed entirely in this browser â€” nothing is uploaded anywhere.
                 </p>
               </div>
             )}
