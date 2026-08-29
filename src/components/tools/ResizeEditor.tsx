@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+﻿import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Button } from '@components/ui/Button'
 import { loadImage } from '@/tools/helpers'
@@ -16,11 +16,11 @@ const MAX_SIZE = 8192
 const PREVIEW_SIZE = 180
 
 const ALGORITHMS: Array<{ value: string; label: string }> = [
-  { value: 'bicubic', label: 'Bicubic — smooth' },
-  { value: 'lanczos', label: 'Lanczos — sharp' },
-  { value: 'bilinear', label: 'Bilinear — fast' },
-  { value: 'nearest', label: 'Nearest — pixel art' },
-  { value: 'area', label: 'Area — downscale' },
+  { value: 'bicubic', label: 'Bicubic â€” smooth' },
+  { value: 'lanczos', label: 'Lanczos â€” sharp' },
+  { value: 'bilinear', label: 'Bilinear â€” fast' },
+  { value: 'nearest', label: 'Nearest â€” pixel art' },
+  { value: 'area', label: 'Area â€” downscale' },
 ]
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -167,7 +167,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
         : { width, height }
       : { width: 0, height: 0 }
 
-  // Live preview canvas — shows the scaled result, including stretch distortion
+  // Live preview canvas â€” shows the scaled result, including stretch distortion
   useEffect(() => {
     const canvas = previewCanvasRef.current
     if (!canvas || !image || output.width <= 0 || output.height <= 0) return
@@ -205,12 +205,12 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
       {/* Editing workspace: original image with draggable output frame */}
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-500">
-            Original — drag the corner handle to rescale (output overlay shown in dashed blue)
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+            Original â€” drag the corner handle to rescale (output overlay shown in dashed blue)
           </p>
           <div
             ref={frameRef}
-            className="relative mx-auto max-w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 select-none"
+            className="relative mx-auto max-w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50 select-none dark:border-slate-700 dark:bg-slate-900"
           >
             {displayUrl && (
               <img src={displayUrl} alt="Original" className="block h-auto max-h-96 w-auto max-w-full" draggable={false} />
@@ -228,7 +228,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
                 onPointerDown={startDrag}
               >
                 <span className="absolute -bottom-6 left-0 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {width} × {height}
+                  {width} Ã— {height}
                 </span>
                 <span className="absolute right-0 bottom-0 h-4 w-4 rounded-tl bg-blue-600 shadow" />
               </div>
@@ -238,28 +238,28 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
 
         {/* Live preview + readouts */}
         <div className="w-full space-y-2 lg:w-56">
-          <p className="text-xs font-medium text-slate-500">Live preview</p>
-          <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-2">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">Live preview</p>
+          <div className="flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900">
             <canvas ref={previewCanvasRef} className="max-w-full rounded" />
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
             {fit === 'fit-inside' && (
               <div className="flex justify-between">
                 <span>Box</span>
-                <span className="font-semibold text-slate-800">
-                  {width} × {height} px
+                <span className="font-semibold text-slate-800 dark:text-slate-100">
+                  {width} Ã— {height} px
                 </span>
               </div>
             )}
             <div className={`flex justify-between${fit === 'fit-inside' ? ' mt-1' : ''}`}>
               <span>Output</span>
-              <span className="font-semibold text-slate-800">
-                {output.width} × {output.height} px
+              <span className="font-semibold text-slate-800 dark:text-slate-100">
+                {output.width} Ã— {output.height} px
               </span>
             </div>
             <div className="mt-1 flex justify-between">
               <span>Scale</span>
-              <span className="font-semibold text-slate-800">{scalePct}%</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-100">{scalePct}%</span>
             </div>
           </div>
           <Button variant="secondary" size="sm" className="w-full" onClick={resetEditor} disabled={!image}>
@@ -271,48 +271,48 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
       {/* Exact values + algorithm + aspect lock */}
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-600">Width (px)</span>
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Width (px)</span>
           <input
             type="number"
             min={MIN_SIZE}
             max={MAX_SIZE}
             value={width || ''}
             onChange={(e) => applyWidth(Number(e.target.value))}
-            className="w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-600">Height (px)</span>
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Height (px)</span>
           <input
             type="number"
             min={MIN_SIZE}
             max={MAX_SIZE}
             value={height || ''}
             onChange={(e) => applyHeight(Number(e.target.value))}
-            className="w-28 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-28 rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
         </label>
-        <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-slate-700">
+        <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-slate-700 dark:text-slate-200">
           <input type="checkbox" checked={lockAspect} onChange={toggleLock} className="h-4 w-4 accent-blue-600" />
           Lock aspect ratio
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-600">Fit mode</span>
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Fit mode</span>
           <select
             value={fit}
             onChange={(e) => setFit(e.target.value as 'stretch' | 'fit-inside')}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             <option value="stretch">Exact size (stretch)</option>
             <option value="fit-inside">Fit inside box</option>
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-xs font-medium text-slate-600">Algorithm</span>
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Algorithm</span>
           <select
             value={algo}
             onChange={(e) => setAlgo(e.target.value)}
-            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           >
             {ALGORITHMS.map((a) => (
               <option key={a.value} value={a.value}>
