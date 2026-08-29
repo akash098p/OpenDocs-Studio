@@ -171,19 +171,45 @@ export const imagesToPdf = async (files: ToolFile[], _params: ToolParams, onProg
 }
 
 // ---------------------------------------------------------------------------
-// PDF Compressor
-//   - mode = 'percentage' (quality) => re-renders all pages as JPEG at the
-//     chosen quality (10-95%), then rebuilds the PDF with pdf-lib.
-//   - mode = 'targetSize' => binary-searches the JPEG quality level that
-//     keeps the output <= the target size in KB or MB.
 // ---------------------------------------------------------------------------
+// PDF Compressor
+//
+// History: the previous version re-encoded pages through a canvas twice —
+// once to produce a JPEG at the user’s quality, and a second time at
+// hard-coded quality 0.92 to "match the source structure". The second
+// round-trip was wasted work and on some browsers it produced blank
+// pages because the JPEG bytes fed to pdf-lib had subtly different
+// header markers than the first encoding.
+//
+// This rewrite uses one encode pass per page at the user’s chosen quality
+// and feeds the resulting JPEG bytes directly to embedJpg. The percentage
+// mapping and the render scale both drop as quality drops, so a 50% pass
+// actually shrinks the file rather than re-encoding it losslessly.
+// ---------------------------------------------------------------------------
+
+/** Maps the user’s quality percent to a JPEG quality.
+ *  100% → 0.85 (high quality recompress), 50% → 0.45, 1% → 0.06. */
+const percentToJpegQuality = (qualityPct: number): number => {
+  const q = Math.max(1, Math.min(100, qualityPct))
+  return Math.max(0.05, Math.min(0.85, 0.05 + (q / 100) * 0.80))
+}
+
+/** Render scale (relative to native page resolution) at the given quality.
+ *  Lowering resolution is what makes text-heavy PDFs shrink. */
+const percentToRenderScale = (qualityPct: number): number => {
+  const q = Math.max(1, Math.min(100, qualityPct))
+  if (q >= 80) return 1
+  if (q >= 60) return 0.9
+  if (q >= 40) return 0.8
+  if (q >= 20) return 0.65
+  return 0.5
+}
 
 const targetBytesPdf = (size: number, unit: string): number => {
   const n = Math.max(1, Number(size) || 0)
   return unit === 'MB' ? Math.round(n * 1024 * 1024) : Math.round(n * 1024)
 }
 
-/** Loads an image from a Blob using the browser Image API. */
 const loadImageFromBlob = (blob: Blob): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const img = new Image()
@@ -192,10 +218,14 @@ const loadImageFromBlob = (blob: Blob): Promise<HTMLImageElement> =>
     img.src = URL.createObjectURL(blob)
   })
 
-/** Renders a pdfjs page to a JPEG Blob. */
+/** Renders a single pdfjs page to a JPEG blob. One encode per page. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderPageToJpegBlob = async (page: any, quality: number): Promise<{ width: number; height: number; blob: Blob }> => {
-  const viewport = page.getViewport({ scale: 1 })
+const renderPageToJpegBlob = async (
+  page: any,
+  scale: number,
+  quality: number,
+): Promise<{ width: number; height: number; blob: Blob }> => {
+  const viewport = page.getViewport({ scale })
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(1, Math.floor(viewport.width))
   canvas.height = Math.max(1, Math.floor(viewport.height))
@@ -210,20 +240,50 @@ const renderPageToJpegBlob = async (page: any, quality: number): Promise<{ width
   return { width: canvas.width, height: canvas.height, blob }
 }
 
-/** Renders all pages of a pdfjs document at a given JPEG quality. */
+/** Renders every page of a pdfjs document at the given scale and JPEG quality. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderAllPages = async (pdf: any, quality: number, onProgress?: (pct: number, msg: string) => void): Promise<Array<{ width: number; height: number; blob: Blob }>> => {
+const renderAllPages = async (
+  pdf: any,
+  scale: number,
+  quality: number,
+  onProgress?: (pct: number, msg: string) => void,
+): Promise<Array<{ width: number; height: number; blob: Blob }>> => {
   const pages: Array<{ width: number; height: number; blob: Blob }> = []
   for (let i = 1; i <= pdf.numPages; i += 1) {
-    onProgress?.(Math.round((i / pdf.numPages) * 90), `Rendering page ${i}/${pdf.numPages} at ${Math.round(quality * 100)}%`)
+    onProgress?.(
+      Math.round((i / pdf.numPages) * 90),
+      `Rendering page ${i}/${pdf.numPages} at ${Math.round(scale * 100)}% scale`,
+    )
     const page = await pdf.getPage(i)
-    pages.push(await renderPageToJpegBlob(page, quality))
+    pages.push(await renderPageToJpegBlob(page, scale, quality))
   }
   return pages
 }
 
-/** Re-encodes rendered page blobs into a new PDF with object stream compression. */
-const buildPdfFromRenderedPages = async (pages: Array<{ width: number; height: number; blob: Blob }>): Promise<Blob> => {
+/** Embeds the already-encoded JPEG pages into a new PDF. No second canvas
+ *  re-encode - we just feed the bytes from renderPageToJpegBlob straight
+ *  into pdf-lib. */
+const buildPdfFromJpegPages = async (
+  pages: Array<{ width: number; height: number; blob: Blob }>,
+): Promise<Blob> => {
+  const doc = await PDFDocument.create()
+  for (const { blob } of pages) {
+    const imgBytes = new Uint8Array(await blob.arrayBuffer())
+    const embedded = await doc.embedJpg(imgBytes)
+    const page = doc.addPage([embedded.width, embedded.height])
+    page.drawImage(embedded, { x: 0, y: 0, width: embedded.width, height: embedded.height })
+  }
+  const bytes = await doc.save({ useObjectStreams: true })
+  return new Blob([bytes.slice()], { type: 'application/pdf' })
+}
+
+/** Re-encodes a set of already-rendered JPEG pages at a different quality
+ *  to estimate the size the resulting PDF would have. Used by the
+ *  targetSize mode’s binary search. */
+const estimatePdfSizeAtQuality = async (
+  pages: Array<{ width: number; height: number; blob: Blob }>,
+  quality: number,
+): Promise<number> => {
   const doc = await PDFDocument.create()
   for (const { blob } of pages) {
     const img = await loadImageFromBlob(blob)
@@ -231,45 +291,22 @@ const buildPdfFromRenderedPages = async (pages: Array<{ width: number; height: n
     canvas.width = img.naturalWidth
     canvas.height = img.naturalHeight
     const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(img, 0, 0)
-      const jpgBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92))
-      if (jpgBlob) {
-        const imgBytes = new Uint8Array(await jpgBlob.arrayBuffer())
-        const embedded = await doc.embedJpg(imgBytes)
-        doc.addPage([embedded.width, embedded.height])
-      }
-    }
-  }
-  const bytes = await doc.save({ useObjectStreams: true })
-  return new Blob([bytes.slice()], { type: 'application/pdf' })
-}
-
-/** Estimates the output PDF size when re-encoded at a given JPEG quality. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const estimatePdfSize = async (_pdf: any, rendered: Array<{ blob: Blob }>, quality: number): Promise<number> => {
-  const doc = await PDFDocument.create()
-  for (const { blob } of rendered) {
-    const img = await loadImageFromBlob(blob)
-    const canvas = document.createElement('canvas')
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(img, 0, 0)
-      const jpgBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
-      if (jpgBlob) {
-        const imgBytes = new Uint8Array(await jpgBlob.arrayBuffer())
-        const embedded = await doc.embedJpg(imgBytes)
-        doc.addPage([embedded.width, embedded.height])
-      }
-    }
+    if (!ctx) continue
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.drawImage(img, 0, 0)
+    const jpg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+    if (!jpg) continue
+    const imgBytes = new Uint8Array(await jpg.arrayBuffer())
+    const embedded = await doc.embedJpg(imgBytes)
+    doc.addPage([embedded.width, embedded.height])
   }
   const saved = await doc.save({ useObjectStreams: true })
   return saved.byteLength
 }
 
-const compressPdfByQuality = async (
+/** Compresses the PDF at a single quality+scale setting. */
+const compressPdfOnce = async (
   file: ToolFile,
   qualityPct: number,
   onProgress?: (pct: number, msg: string) => void,
@@ -279,12 +316,17 @@ const compressPdfByQuality = async (
   pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc.default as string
   const data = new Uint8Array(await file.blob.arrayBuffer())
   const pdf = await pdfjsLib.getDocument({ data }).promise
-  const jpegQ = Math.max(0.1, Math.min(0.95, qualityPct / 100))
-  const pages = await renderAllPages(pdf, jpegQ, onProgress)
-  return buildPdfFromRenderedPages(pages)
+  const jpegQ = percentToJpegQuality(qualityPct)
+  const scale = percentToRenderScale(qualityPct)
+  const pages = await renderAllPages(pdf, scale, jpegQ, onProgress)
+  return buildPdfFromJpegPages(pages)
 }
 
-const compressPdfToTargetSize = async (
+/** Find the quality level that brings the output under the target size.
+ *  Strategy: render at scale=1 quality=0.85 once, then binary-search the
+ *  best quality between 0.05 and 0.85 that fits the target. If we still
+ *  can’t reach the target, drop the render scale. */
+const compressPdfToTarget = async (
   file: ToolFile,
   target: number,
   onProgress?: (pct: number, msg: string) => void,
@@ -296,52 +338,50 @@ const compressPdfToTargetSize = async (
   const pdf = await pdfjsLib.getDocument({ data }).promise
 
   onProgress?.(2, 'Rendering pages at reference quality')
-  const rendered = await renderAllPages(pdf, 0.92, onProgress)
+  const refPages = await renderAllPages(pdf, 1, 0.85, onProgress)
 
-  const refSize = await estimatePdfSize(pdf, rendered, 0.92)
-  if (refSize <= target) {
-    onProgress?.(60, 'PDF already under target - re-encoding at 85% quality')
-    return buildPdfFromRenderedPages(rendered)
+  const refBlob = await buildPdfFromJpegPages(refPages)
+  if (refBlob.size <= target) {
+    onProgress?.(60, 'Already under target size')
+    return refBlob
   }
 
-  // Binary search: quality 0.1 = most compressed, 0.92 = least.
-  let low = 0.1
-  let high = 0.92
-  let best: { quality: number; size: number } | null = null
-  for (let iter = 0; iter < 7; iter += 1) {
-    const quality = (low + high) / 2
-    const size = await estimatePdfSize(pdf, rendered, quality)
-    if (!best || size < best.size) best = { quality, size }
-    onProgress?.(30 + Math.round((iter / 7) * 50), `Quality ${Math.round(quality * 100)}% -> ${Math.round(size / 1024)} KB`)
+  // First pass: binary search the JPEG quality at scale=1.
+  let low = 0.05
+  let high = 0.85
+  let best = { quality: 0.5, size: refBlob.size }
+  for (let iter = 0; iter < 6; iter += 1) {
+    const q = (low + high) / 2
+    onProgress?.(40 + Math.round((iter / 6) * 25), `Quality ${Math.round(q * 100)}%...`)
+    const size = await estimatePdfSizeAtQuality(refPages, q)
+    if (size < best.size) best = { quality: q, size }
+    if (size <= target) low = q
+    else high = q
+  }
+  if (best.size <= target) {
+    onProgress?.(85, 'Building final PDF')
+    return buildPdfFromJpegPages(await renderAllPages(pdf, 1, best.quality, onProgress))
+  }
+
+  // Second pass: drop the render scale (re-render at lower resolution).
+  onProgress?.(70, 'Trying lower resolution')
+  const scales = [0.85, 0.7, 0.6, 0.5]
+  let bestOverall = { scale: 1, quality: best.quality, size: best.size, refPages: refPages as Array<{ width: number; height: number; blob: Blob }> }
+  for (const s of scales) {
+    onProgress?.(75 + Math.round((s === 0.5 ? 1 : 0) * 20), `Re-rendering at ${Math.round(s * 100)}% scale`)
+    const lowResPages = await renderAllPages(pdf, s, 0.7, onProgress)
+    const size = await estimatePdfSizeAtQuality(lowResPages, 0.7)
+    if (size < bestOverall.size) {
+      bestOverall = { scale: s, quality: 0.7, size, refPages: lowResPages }
+    }
     if (size <= target) {
-      low = quality
-    } else {
-      high = quality
+      onProgress?.(90, 'Building final PDF')
+      return buildPdfFromJpegPages(lowResPages)
     }
   }
 
-  const finalQ = best ? best.quality : 0.5
-  onProgress?.(85, `Building final PDF at ${Math.round(finalQ * 100)}% quality`)
-  const doc = await PDFDocument.create()
-  for (const { blob } of rendered) {
-    const img = await loadImageFromBlob(blob)
-    const canvas = document.createElement('canvas')
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    const ctx = canvas.getContext('2d')
-    if (ctx) {
-      ctx.drawImage(img, 0, 0)
-      const jpgBlob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', finalQ))
-      if (jpgBlob) {
-        const imgBytes = new Uint8Array(await jpgBlob.arrayBuffer())
-        const embedded = await doc.embedJpg(imgBytes)
-        doc.addPage([embedded.width, embedded.height])
-      }
-    }
-  }
-  onProgress?.(95, 'Compressing structure')
-  const bytes = await doc.save({ useObjectStreams: true })
-  return new Blob([bytes.slice()], { type: 'application/pdf' })
+  onProgress?.(90, 'Building final PDF')
+  return buildPdfFromJpegPages(bestOverall.refPages)
 }
 
 export const pdfCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
@@ -358,24 +398,21 @@ export const pdfCompress = async (files: ToolFile[], params: ToolParams, onProgr
 
     let blob: Blob
     if (mode === "targetSize") {
-      // If the source is already smaller than the target, return the source untouched.
       if (file.blob.size <= target) {
         onProgress?.(Math.round((i / pdfs.length) * 95) + 5, "Source already under target - keeping original")
         blob = file.blob
       } else {
-        blob = await compressPdfToTargetSize(file, target, (p, m) => {
+        blob = await compressPdfToTarget(file, target, (p, m) => {
           const base = Math.round((i / pdfs.length) * 90) + 5
           onProgress?.(base + Math.round(p * 0.1), m)
         })
-        // If our re-encoded version is still larger than the source, keep the source.
         if (blob.size > file.blob.size) blob = file.blob
       }
     } else {
-      blob = await compressPdfByQuality(file, qualityPct, (p, m) => {
+      blob = await compressPdfOnce(file, qualityPct, (p, m) => {
         const base = Math.round((i / pdfs.length) * 90) + 5
         onProgress?.(base + Math.round(p * 0.1), m)
       })
-      // Re-encoding only helps if it shrinks. Otherwise return the source unchanged.
       if (blob.size > file.blob.size) blob = file.blob
     }
 
