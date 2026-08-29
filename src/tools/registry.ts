@@ -17,7 +17,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Resize',
     group: 'Image',
     icon: '/tools-icons/image resize.png',
-    description: 'Visually rescale an image by dragging a handle over the original, with aspect-ratio lock and a live preview.',
+    description: 'Visually rescale an image by dragging a handle over the original — exact size or fit-inside box, with aspect-ratio lock and a live preview.',
     inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
     fields: [],
     visualEditor: true,

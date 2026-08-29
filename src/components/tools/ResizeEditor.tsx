@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Button } from '@components/ui/Button'
 import { loadImage } from '@/tools/helpers'
+import { calculateFitInside } from '@/tools/imageProcessors'
 import { VisualEditorHandle } from '@/tools/types'
 
 export type ResizeEditorHandle = VisualEditorHandle
@@ -31,6 +32,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
   const [width, setWidth] = useState(0)
   const [height, setHeight] = useState(0)
   const [lockAspect, setLockAspect] = useState(true)
+  const [fit, setFit] = useState<'stretch' | 'fit-inside'>('stretch')
   const [algo, setAlgo] = useState('bicubic')
 
   const frameRef = useRef<HTMLDivElement>(null)
@@ -103,6 +105,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
     }
     setLockAspect(true)
     setAlgo('bicubic')
+    setFit('stretch')
   }
 
   // Corner-handle dragging: drag towards / away from the image to rescale
@@ -156,10 +159,18 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
   }
 
 
-  // Live preview canvas — approximates the scaled result
+  // Output dimensions: exact box for stretch, fitted (aspect kept) for fit-inside
+  const output =
+    image && width > 0 && height > 0
+      ? fit === 'fit-inside'
+        ? calculateFitInside(image.naturalWidth, image.naturalHeight, width, height)
+        : { width, height }
+      : { width: 0, height: 0 }
+
+  // Live preview canvas — shows the scaled result, including stretch distortion
   useEffect(() => {
     const canvas = previewCanvasRef.current
-    if (!canvas || !image || width <= 0 || height <= 0) return
+    if (!canvas || !image || output.width <= 0 || output.height <= 0) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
     canvas.width = PREVIEW_SIZE
@@ -168,22 +179,26 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
     ctx.fillRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE)
     ctx.imageSmoothingEnabled = algo !== 'nearest'
     ctx.imageSmoothingQuality = 'high'
-    const scale = Math.min((PREVIEW_SIZE * 0.9) / width, (PREVIEW_SIZE * 0.9) / height)
-    const dw = width * scale
-    const dh = height * scale
+    const scale = Math.min((PREVIEW_SIZE * 0.9) / output.width, (PREVIEW_SIZE * 0.9) / output.height)
+    const dw = output.width * scale
+    const dh = output.height * scale
     ctx.drawImage(image, (PREVIEW_SIZE - dw) / 2, (PREVIEW_SIZE - dh) / 2, dw, dh)
-  }, [image, width, height, algo])
+  }, [image, output.width, output.height, algo])
 
   // Expose the current editor values so ToolRunner can send them to the processor.
   useImperativeHandle(ref, () => ({
     getParams: () => ({
       width: String(width),
       height: String(height),
+      fit,
       algo,
     }),
   }))
 
-  const scalePct = image && image.naturalWidth > 0 ? Math.round((width / image.naturalWidth) * 100) : 100
+  const scalePct =
+    image && image.naturalWidth > 0 && output.width > 0
+      ? Math.round((output.width / image.naturalWidth) * 100)
+      : 100
 
   return (
     <div className="space-y-4">
@@ -228,10 +243,18 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
             <canvas ref={previewCanvasRef} className="max-w-full rounded" />
           </div>
           <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-            <div className="flex justify-between">
+            {fit === 'fit-inside' && (
+              <div className="flex justify-between">
+                <span>Box</span>
+                <span className="font-semibold text-slate-800">
+                  {width} × {height} px
+                </span>
+              </div>
+            )}
+            <div className={`flex justify-between${fit === 'fit-inside' ? ' mt-1' : ''}`}>
               <span>Output</span>
               <span className="font-semibold text-slate-800">
-                {width} × {height} px
+                {output.width} × {output.height} px
               </span>
             </div>
             <div className="mt-1 flex justify-between">
@@ -272,6 +295,17 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
         <label className="flex cursor-pointer items-center gap-2 pb-2 text-sm text-slate-700">
           <input type="checkbox" checked={lockAspect} onChange={toggleLock} className="h-4 w-4 accent-blue-600" />
           Lock aspect ratio
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs font-medium text-slate-600">Fit mode</span>
+          <select
+            value={fit}
+            onChange={(e) => setFit(e.target.value as 'stretch' | 'fit-inside')}
+            className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none"
+          >
+            <option value="stretch">Exact size (stretch)</option>
+            <option value="fit-inside">Fit inside box</option>
+          </select>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs font-medium text-slate-600">Algorithm</span>
