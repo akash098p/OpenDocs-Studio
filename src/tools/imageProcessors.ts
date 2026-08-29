@@ -277,3 +277,62 @@ export const imageStripExif = async (files: ToolFile[], params: ToolParams, onPr
   onProgress?.(100, 'Done.')
   return [{ name: outputName(file, 'stripped', ext), blob }]
 }
+
+// ---------------------------------------------------------------------------
+// Image Crop & Rotate (visual editor — crop rect in %, rotation in degrees)
+// ---------------------------------------------------------------------------
+export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const input = getFile(files, 'image')
+  const cropX = Math.max(0, numberParam(params, 'cropX', 0))
+  const cropY = Math.max(0, numberParam(params, 'cropY', 0))
+  const cropWidth = Math.max(0, numberParam(params, 'cropWidth', 100))
+  const cropHeight = Math.max(0, numberParam(params, 'cropHeight', 100))
+  const rotate = numberParam(params, 'rotate', 0)
+
+  onProgress?.(10, 'Loading image…')
+  const image = await loadImage(input.blob)
+  const srcW = image.naturalWidth
+  const srcH = image.naturalHeight
+
+  // Dimensions after rotation
+  const swapped = rotate === 90 || rotate === 270
+  const rotW = swapped ? srcH : srcW
+  const rotH = swapped ? srcW : srcH
+
+  // --- Step 1: draw rotated image onto a canvas ---
+  onProgress?.(40, 'Rotating…')
+  const rotCanvas = document.createElement('canvas')
+  rotCanvas.width = rotW
+  rotCanvas.height = rotH
+  const rotCtx = rotCanvas.getContext('2d')
+  if (!rotCtx) throw new Error('Could not create canvas context.')
+  rotCtx.fillStyle = '#ffffff'
+  rotCtx.fillRect(0, 0, rotW, rotH)
+  rotCtx.save()
+  rotCtx.translate(rotW / 2, rotH / 2)
+  rotCtx.rotate((rotate * Math.PI) / 180)
+  rotCtx.drawImage(image, -srcW / 2, -srcH / 2, srcW, srcH)
+  rotCtx.restore()
+
+  // --- Step 2: crop from the rotated canvas ---
+  onProgress?.(70, 'Cropping…')
+  const cx = Math.max(0, Math.round((cropX / 100) * rotW))
+  const cy = Math.max(0, Math.round((cropY / 100) * rotH))
+  const cw = Math.min(rotW - cx, Math.max(1, Math.round((cropWidth / 100) * rotW)))
+  const ch = Math.min(rotH - cy, Math.max(1, Math.round((cropHeight / 100) * rotH)))
+
+  const outCanvas = document.createElement('canvas')
+  outCanvas.width = cw
+  outCanvas.height = ch
+  const outCtx = outCanvas.getContext('2d')
+  if (!outCtx) throw new Error('Could not create canvas context.')
+  outCtx.fillStyle = '#ffffff'
+  outCtx.fillRect(0, 0, cw, ch)
+  outCtx.drawImage(rotCanvas, cx, cy, cw, ch, 0, 0, cw, ch)
+
+  onProgress?.(90, 'Encoding…')
+  const ext = fileExtension(input.name) || 'png'
+  const blob = await canvasToBlob(outCanvas, mimeFor(ext), 0.92)
+  onProgress?.(100, 'Done.')
+  return [{ name: outputName(input, 'cropped', ext), blob }]
+}

@@ -2,6 +2,16 @@ import { ToolDefinition } from './types'
 
 export const toolDefinitions: ToolDefinition[] = [
   {
+    id: 'image-crop-rotate',
+    name: 'Image Crop & Rotate',
+    group: 'Image',
+    icon: '/tools-icons/image crop.png',
+    description: 'Visually crop a region and rotate the image (0°, 90°, 180°, 270°) with a live preview before exporting.',
+    inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
+    fields: [],
+    visualEditor: true,
+  },
+  {
     id: 'image-resize',
     name: 'Image Resize',
     group: 'Image',

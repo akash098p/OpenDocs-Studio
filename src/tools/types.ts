@@ -28,6 +28,7 @@ export interface ToolDefinition {
   description: string
   inputs: ToolInput[]
   fields: ToolField[]
+  visualEditor?: boolean
 }
 
 export interface ToolFile {
