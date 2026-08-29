@@ -150,6 +150,19 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
 // ---------------------------------------------------------------------------
 // Add Watermark
 // ---------------------------------------------------------------------------
+const FONT_STACKS: Record<string, string> = {
+  Arial: 'Arial, Helvetica, sans-serif',
+  Verdana: 'Verdana, Geneva, sans-serif',
+  Tahoma: 'Tahoma, Verdana, sans-serif',
+  'Trebuchet MS': '"Trebuchet MS", Helvetica, sans-serif',
+  Impact: 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif',
+  Georgia: 'Georgia, "Times New Roman", serif',
+  'Times New Roman': '"Times New Roman", Times, serif',
+  'Courier New': '"Courier New", Courier, monospace',
+  'Comic Sans MS': '"Comic Sans MS", "Comic Sans", cursive',
+  'Palatino Linotype': '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+}
+
 const resolvePosition = (
   position: string,
   imageW: number,
@@ -218,12 +231,15 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
   if (text) {
     onProgress?.(70, 'Drawing text…')
     const fontSize = numberParam(params, 'fontSize', 36)
-    const colorRaw = stringParam(params, 'color', 'FFFFFF').replace(/^#/, '')
-    const isValid = /^([0-9a-fA-F]{6})$/.test(colorRaw)
-    const fill = isValid ? `#${colorRaw}` : colorRaw
+    const fontName = stringParam(params, 'font', 'Arial')
+    const fontStack = FONT_STACKS[fontName] ?? FONT_STACKS.Arial
+    const colorRaw = stringParam(params, 'color', '#FFFFFF').replace(/^#/, '')
+    const isValid = /^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(colorRaw)
+    const expanded = isValid && colorRaw.length === 3 ? colorRaw.split('').map((c) => c + c).join('') : colorRaw
+    const fill = isValid ? `#${expanded}` : '#FFFFFF'
     ctx.save()
     ctx.globalAlpha = Math.max(0.1, opacity)
-    ctx.font = `bold ${fontSize}px Arial, system-ui, sans-serif`
+    ctx.font = `bold ${fontSize}px ${fontStack}`
     ctx.fillStyle = fill
     const textWidth = ctx.measureText(text).width
     const pad = fontSize * 0.6

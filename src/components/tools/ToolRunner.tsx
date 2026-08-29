@@ -42,6 +42,32 @@ const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (val
       />
     )
   }
+  if (field.type === 'color') {
+    const isValidHex = /^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(value)
+    return (
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          name={field.name}
+          value={isValidHex ? value : '#000000'}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-10 w-14 shrink-0 cursor-pointer rounded-md border border-slate-300 bg-white p-1 dark:border-slate-600 dark:bg-slate-800"
+          aria-label={`${field.label} picker`}
+        />
+        <input
+          name={field.name}
+          type="text"
+          value={value}
+          onChange={(event) => {
+            const trimmed = event.target.value.trim().replace(/^#*/i, '')
+            onChange(trimmed ? `#${trimmed.toUpperCase()}` : '')
+          }}
+          placeholder="#RRGGBB"
+          className={sharedClass}
+        />
+      </div>
+    )
+  }
   return (
     <input name={field.name} type="text" value={value} onChange={(event) => onChange(event.target.value)} className={sharedClass} />
   )
