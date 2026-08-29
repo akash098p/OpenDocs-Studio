@@ -3,9 +3,10 @@ import { Button } from '@components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@components/ui/Card'
 import { FileUpload } from '@components/ui/FileUpload'
 import { OutputPreview } from '@components/tools/OutputPreview'
-import { ImageEditor, ImageEditorHandle } from './ImageEditor'
+import { ImageEditor } from './ImageEditor'
+import { ResizeEditor } from './ResizeEditor'
 import { useUIStore } from '@store/uiStore'
-import { ToolDefinition, ToolField, ToolFile, ToolOutput, ToolParams } from '@/tools/types'
+import { ToolDefinition, ToolField, ToolFile, ToolOutput, ToolParams, VisualEditorHandle } from '@/tools/types'
 import { runTool } from '@/tools'
 
 interface ToolRunnerProps {
@@ -56,7 +57,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('')
   const [outputs, setOutputs] = useState<ToolOutput[] | null>(null)
-  const editorRef = useRef<ImageEditorHandle>(null)
+  const editorRef = useRef<VisualEditorHandle>(null)
 
   const editorInput = tool.visualEditor ? tool.inputs[0] : undefined
   const editorFile = editorInput ? fileMap[editorInput.name]?.[0] : undefined
@@ -152,10 +153,16 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
             {tool.visualEditor && (
               <div>
                 {editorFile ? (
-                  <ImageEditor ref={editorRef} file={editorFile} />
+                  tool.editor === 'resize' ? (
+                    <ResizeEditor ref={editorRef} file={editorFile} />
+                  ) : (
+                    <ImageEditor ref={editorRef} file={editorFile} />
+                  )
                 ) : (
                   <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
-                    Add an image above to open the crop &amp; rotate editor.
+                    {tool.editor === 'resize'
+                      ? 'Add an image above to open the resize editor.'
+                      : 'Add an image above to open the crop & rotate editor.'}
                   </p>
                 )}
               </div>

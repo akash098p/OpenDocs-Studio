@@ -29,6 +29,11 @@ export interface ToolDefinition {
   inputs: ToolInput[]
   fields: ToolField[]
   visualEditor?: boolean
+  editor?: 'crop-rotate' | 'resize'
+}
+
+export interface VisualEditorHandle {
+  getParams: () => Record<string, string>
 }
 
 export interface ToolFile {

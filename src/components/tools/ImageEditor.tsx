@@ -2,10 +2,9 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Button } from '@components/ui/Button'
 import { loadImage } from '@/tools/helpers'
+import { VisualEditorHandle } from '@/tools/types'
 
-export interface ImageEditorHandle {
-  getParams: () => Record<string, string>
-}
+export type ImageEditorHandle = VisualEditorHandle
 
 interface CropRect {
   x: number
