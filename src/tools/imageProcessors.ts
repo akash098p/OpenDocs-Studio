@@ -2,6 +2,7 @@ import { ToolFile, ToolOutput, ToolParams } from './types'
 import {
   canvasToBlob,
   fileExtension,
+  FONT_STACKS,
   getFile,
   getFiles,
   loadImage,
@@ -150,19 +151,6 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
 // ---------------------------------------------------------------------------
 // Add Watermark
 // ---------------------------------------------------------------------------
-const FONT_STACKS: Record<string, string> = {
-  Arial: 'Arial, Helvetica, sans-serif',
-  Verdana: 'Verdana, Geneva, sans-serif',
-  Tahoma: 'Tahoma, Verdana, sans-serif',
-  'Trebuchet MS': '"Trebuchet MS", Helvetica, sans-serif',
-  Impact: 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif',
-  Georgia: 'Georgia, "Times New Roman", serif',
-  'Times New Roman': '"Times New Roman", Times, serif',
-  'Courier New': '"Courier New", Courier, monospace',
-  'Comic Sans MS': '"Comic Sans MS", "Comic Sans", cursive',
-  'Palatino Linotype': '"Palatino Linotype", "Book Antiqua", Palatino, serif',
-}
-
 const resolvePosition = (
   position: string,
   imageW: number,

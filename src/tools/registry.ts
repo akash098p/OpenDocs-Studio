@@ -62,7 +62,7 @@ export const toolDefinitions: ToolDefinition[] = [
       { name: 'opacity', label: 'Overlay opacity (1-100)', type: 'number', default: 100, min: 1, max: 100, step: 1 },
       { name: 'scale', label: 'Overlay scale (% of image width)', type: 'number', default: 30, min: 10, max: 300, step: 5 },
       { name: 'text', label: 'Text label (optional)', type: 'text', default: '' },
-      { name: 'font', label: 'Font', type: 'select', options: ['Arial', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman', 'Courier New', 'Comic Sans MS', 'Palatino Linotype'], default: 'Arial' },
+      { name: 'font', label: 'Font', type: 'font', options: ['Arial', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman', 'Courier New', 'Comic Sans MS', 'Palatino Linotype'], default: 'Arial' },
       { name: 'fontSize', label: 'Font size (px)', type: 'number', default: 36, min: 8, max: 300, step: 1 },
       { name: 'color', label: 'Text color', type: 'color', default: '#FFFFFF' },
     ],

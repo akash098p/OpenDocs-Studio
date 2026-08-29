@@ -164,3 +164,17 @@ export const singleOutput = (outputs: ToolOutput[]): ToolOutput => {
   if (outputs.length !== 1) throw new Error('Expected a single output file.')
   return outputs[0]
 }
+
+// Web-safe font stacks for canvas text rendering and font-picker previews.
+export const FONT_STACKS: Record<string, string> = {
+  Arial: 'Arial, Helvetica, sans-serif',
+  Verdana: 'Verdana, Geneva, sans-serif',
+  Tahoma: 'Tahoma, Verdana, sans-serif',
+  'Trebuchet MS': '"Trebuchet MS", Helvetica, sans-serif',
+  Impact: 'Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif',
+  Georgia: 'Georgia, "Times New Roman", serif',
+  'Times New Roman': '"Times New Roman", Times, serif',
+  'Courier New': '"Courier New", Courier, monospace',
+  'Comic Sans MS': '"Comic Sans MS", "Comic Sans", cursive',
+  'Palatino Linotype': '"Palatino Linotype", "Book Antiqua", Palatino, serif',
+}

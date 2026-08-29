@@ -5,6 +5,7 @@ import { FileUpload } from '@components/ui/FileUpload'
 import { OutputPreview } from '@components/tools/OutputPreview'
 import { ImageEditor } from './ImageEditor'
 import { ResizeEditor } from './ResizeEditor'
+import { FONT_STACKS } from '@/tools/helpers'
 import { useUIStore } from '@store/uiStore'
 import { ToolDefinition, ToolField, ToolFile, ToolOutput, ToolParams, VisualEditorHandle } from '@/tools/types'
 import { runTool } from '@/tools'
@@ -22,6 +23,23 @@ const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (val
       <select name={field.name} value={value} onChange={(event) => onChange(event.target.value)} className={sharedClass}>
         {(field.options || []).map((option) => (
           <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    )
+  }
+  if (field.type === 'font') {
+    return (
+      <select
+        name={field.name}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={sharedClass}
+        style={{ fontFamily: FONT_STACKS[value] ?? FONT_STACKS.Arial }}
+      >
+        {(field.options || []).map((option) => (
+          <option key={option} value={option} style={{ fontFamily: FONT_STACKS[option] ?? 'inherit' }}>
             {option}
           </option>
         ))}

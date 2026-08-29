@@ -1,4 +1,4 @@
-export type ToolFieldType = 'number' | 'select' | 'text' | 'color'
+export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font'
 
 export interface ToolField {
   name: string
