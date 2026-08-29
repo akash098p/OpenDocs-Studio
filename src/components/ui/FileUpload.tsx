@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+﻿import React, { useState, useRef, useEffect } from 'react'
 import { cn } from '@utils/helpers'
 import { formatFileSize } from '@utils/helpers'
 
@@ -124,9 +124,22 @@ export const FileUpload: React.FC<FileUploadProps> = ({
 
       {selectedCount > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            {selectedCount} file{selectedCount !== 1 ? 's' : ''} selected
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              {selectedCount} file{selectedCount !== 1 ? 's' : ''} selected
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                previewUrls.current.forEach((url) => URL.revokeObjectURL(url))
+                previewUrls.current.clear()
+                onFilesChange([])
+              }}
+              className="text-xs font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+            >
+              Remove all
+            </button>
+          </div>
           {value.map((file, index) => {
             const previewUrl = isImage(file) ? getPreviewUrl(file) : null
             return (
