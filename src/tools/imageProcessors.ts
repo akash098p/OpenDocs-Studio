@@ -89,31 +89,6 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
 }
 
 // ---------------------------------------------------------------------------
-// Image Crop
-// ---------------------------------------------------------------------------
-export const imageCrop = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  const width = numberParam(params, 'width', 0)
-  const height = numberParam(params, 'height', 0)
-  if (!width || !height) throw new Error('Width and height of the crop box are required.')
-
-  onProgress?.(10, 'Loading image…')
-  const image = await loadImage(getFile(files, 'image').blob)
-  const left = numberParam(params, 'left', 0)
-  const top = numberParam(params, 'top', 0)
-
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Could not create canvas context.')
-  ctx.drawImage(image, left, top, width, height, 0, 0, width, height)
-
-  const ext = fileExtension(getFile(files, 'image').name) || 'png'
-  const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
-  onProgress?.(100, 'Done.')
-  return [{ name: outputName(getFile(files, 'image'), 'cropped', ext), blob }]
-}
-// ---------------------------------------------------------------------------
 // Image Compress
 // ---------------------------------------------------------------------------
 export const imageCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {

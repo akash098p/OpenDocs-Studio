@@ -26,20 +26,6 @@ export const toolDefinitions: ToolDefinition[] = [
     ],
   },
   {
-    id: 'image-crop',
-    name: 'Image Crop',
-    group: 'Image',
-    icon: '/tools-icons/image crop.png',
-    description: 'Cut out a rectangular region (pixel offsets + size) from the source image.',
-    inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
-    fields: [
-      { name: 'left', label: 'Left offset (px)', type: 'number', default: 0, min: 0, step: 1 },
-      { name: 'top', label: 'Top offset (px)', type: 'number', default: 0, min: 0, step: 1 },
-      { name: 'width', label: 'Crop width (px)', type: 'number', default: 0, min: 1, step: 1 },
-      { name: 'height', label: 'Crop height (px)', type: 'number', default: 0, min: 1, step: 1 },
-    ],
-  },
-  {
     id: 'image-compress',
     name: 'Image Compressor',
     group: 'Image',

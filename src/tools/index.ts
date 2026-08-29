@@ -1,7 +1,6 @@
 import { ToolFile, ToolOutput, ToolParams } from './types'
 import {
   imageResize,
-  imageCrop,
   imageCropRotate,
   imageCompress,
   imageConvert,
@@ -28,9 +27,7 @@ export const runTool = async (
 ): Promise<ToolOutput[]> => {
   switch (toolId) {
     case 'image-resize':
-      return imageResize(files, params, onProgress)    case 'image-crop':
-      return imageCrop(files, params, onProgress)
-    case 'image-crop-rotate':
+      return imageResize(files, params, onProgress)    case 'image-crop-rotate':
       return imageCropRotate(files, params, onProgress)
     case 'image-compress':
       return imageCompress(files, params, onProgress)
