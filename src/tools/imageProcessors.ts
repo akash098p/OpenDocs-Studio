@@ -1,4 +1,4 @@
-import { ToolFile, ToolOutput, ToolParams } from './types'
+﻿import { ToolFile, ToolOutput, ToolParams } from './types'
 import {
   canvasToBlob,
   fileExtension,
@@ -19,7 +19,6 @@ export const calculateFitInside = (srcW: number, srcH: number, boxW: number, box
   const ratio = Math.min(boxW / srcW, boxH / srcH)
   return { width: Math.max(1, Math.round(srcW * ratio)), height: Math.max(1, Math.round(srcH * ratio)) }
 }
-
 export const drawCanvas = (
   image: HTMLImageElement,
   width: number,
@@ -43,7 +42,6 @@ export const drawCanvas = (
   ctx.drawImage(image, 0, 0, width, height)
   return canvas
 }
-
 export const outputName = (file: ToolFile, prefix: string, ext: string): string =>
   `${prefix}-${sanitizeFilename(file.name.replace(/\.[^.]+$/, ''))}.${ext}`
 
@@ -51,7 +49,7 @@ export const outputName = (file: ToolFile, prefix: string, ext: string): string 
 // Image Resize
 // ---------------------------------------------------------------------------
 export const imageResize = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  onProgress?.(10, 'Loading image…')
+  onProgress?.(10, 'Loading imageâ€¦')
   const image = await loadImage(getFile(files, 'image').blob)
   const srcW = image.naturalWidth
   const srcH = image.naturalHeight
@@ -83,18 +81,17 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
   const algo = stringParam(params, 'algo', 'bicubic')
   const smoothing = algo === 'nearest' ? 'off' : algo === 'bilinear' || algo === 'area' ? 'medium' : 'high'
 
-  onProgress?.(50, 'Scaling…')
+  onProgress?.(50, 'Scalingâ€¦')
   const canvas = drawCanvas(image, outW, outH, smoothing)
   const ext = fileExtension(getFile(files, 'image').name) || 'png'
   const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(getFile(files, 'image'), 'resized', ext), blob }]
 }
-
 // ---------------------------------------------------------------------------
 // Image Compress
-//   - mode = 'percentage' → use the given quality (1–100) directly
-//   - mode = 'targetSize' → binary-search the lowest quality that fits the
+//   - mode = 'percentage' â†’ use the given quality (1â€“100) directly
+//   - mode = 'targetSize' â†’ binary-search the lowest quality that fits the
 //     given target size in KB or MB. Falls back to the best quality if the
 //     target is unreachable (e.g. already too small or PNG output).
 // ---------------------------------------------------------------------------
@@ -102,7 +99,6 @@ const targetBytes = (size: number, unit: string): number => {
   const n = Math.max(1, Number(size) || 0)
   return unit === 'MB' ? Math.round(n * 1024 * 1024) : Math.round(n * 1024)
 }
-
 const isLossyExt = (ext: string): boolean => ext === 'jpg' || ext === 'jpeg' || ext === 'webp'
 
 const lossyMime = (ext: string): string | null => {
@@ -110,7 +106,6 @@ const lossyMime = (ext: string): string | null => {
   if (ext === 'webp') return 'image/webp'
   return null
 }
-
 const compressAtQuality = async (
   canvas: HTMLCanvasElement,
   mime: string,
@@ -121,18 +116,18 @@ const compressAtQuality = async (
   }
   return canvasToBlob(canvas, mime, Math.max(0.05, Math.min(1, quality)))
 }
-
 const findQualityForTargetSize = async (
-  canvas: HTMLCanvasElement,
+  image: HTMLImageElement,
   mime: string,
   target: number,
 ): Promise<Blob> => {
-  // Start with the best possible quality and step down in halves.
+  // Binary search: find the lowest quality that fits the target size.
   let low = 0.05
   let high = 0.95
   let best: Blob | null = null
   for (let iter = 0; iter < 7; iter += 1) {
     const q = (low + high) / 2
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
     const blob = await compressAtQuality(canvas, mime, q)
     if (!best || blob.size < best.size) best = blob
     if (blob.size <= target) {
@@ -142,53 +137,64 @@ const findQualityForTargetSize = async (
     }
   }
   // One final pass at the lower bound to be sure we land at or below target.
-  const finalBlob = await compressAtQuality(canvas, mime, low)
+  const finalCanvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const finalBlob = await compressAtQuality(finalCanvas, mime, low)
   if (!best || finalBlob.size < best.size) best = finalBlob
   return best!
 }
 
 export const imageCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  const mode = stringParam(params, 'mode', 'percentage') === 'targetSize' ? 'targetSize' : 'percentage'
-  const qualityPct = Math.max(1, Math.min(100, numberParam(params, 'quality', 80)))
-  const target = targetBytes(numberParam(params, 'targetSize', 500), stringParam(params, 'targetUnit', 'KB'))
-  const format = stringParam(params, 'format', 'auto')
-  const images = getFiles(files, 'image')
-  if (!images.length) throw new Error('Provide at least one image.')
+  const mode = stringParam(params, "mode", "percentage") === "targetSize" ? "targetSize" : "percentage"
+  const qualityPct = Math.max(1, Math.min(100, numberParam(params, "quality", 75)))
+  const target = targetBytes(numberParam(params, "targetSize", 500), stringParam(params, "targetUnit", "KB"))
+  const format = stringParam(params, "format", "auto")
+  const images = getFiles(files, "image")
+  if (!images.length) throw new Error("Provide at least one image.")
 
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
     const file = images[i]
-    onProgress?.(Math.round((i / images.length) * 90) + 5, `Compressing ${i + 1}/${images.length}…`)
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Compressing ${i + 1}/${images.length}...`)
 
-    const srcExt = fileExtension(file.name) || 'png'
-    const ext = format === 'auto' ? srcExt : format
-    const normalizedExt = ext === 'jpeg' ? 'jpg' : ext
+    const srcExt = fileExtension(file.name) || "png"
+    // PNG output is kept when the source is PNG and the user picked "auto" —
+    // re-encoding a lossless PNG in the browser only makes it larger.
+    const ext = format === "auto" ? srcExt : format
+    const normalizedExt = ext === "jpeg" ? "jpg" : ext
 
-    onProgress?.(Math.round((i / images.length) * 90) + 5, `Loading ${file.name}…`)
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Loading ${file.name}...`)
     const image = await loadImage(file.blob)
-    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
 
+    // Quality as 0..1 used by canvas.toBlob. Linear scale — 75 means 0.75.
+    const q = qualityPct / 100
     let blob: Blob
+
     if (isLossyExt(normalizedExt)) {
       const mime = lossyMime(normalizedExt)!
-      if (mode === 'targetSize') {
-        blob = await findQualityForTargetSize(canvas, mime, target)
+      if (mode === "targetSize") {
+        blob = await findQualityForTargetSize(image, mime, target)
       } else {
-        const q = normalizedExt === 'jpg' || normalizedExt === 'jpeg' ? qualityPct * 0.009 : qualityPct / 100
+        const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
         blob = await compressAtQuality(canvas, mime, q)
       }
+      // If the re-encoded blob is bigger than the source, return the source.
+      if (blob.size > file.blob.size) blob = file.blob
+    } else if (normalizedExt === srcExt) {
+      // Same-format PNG/BMP: re-encoding is lossless but the new file is almost
+      // always bigger. Just return the source untouched.
+      blob = file.blob
     } else {
-      // PNG is lossless — quality / target size have no effect on canvas encoding.
-      blob = await compressAtQuality(canvas, mimeFor(normalizedExt), 1)
+      // Cross-format (e.g. PNG -> JPG): JPEG re-encode is a real shrinker.
+      const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+      blob = await compressAtQuality(canvas, "image/jpeg", q)
     }
 
-    outputs.push({ name: outputName(file, 'compressed', normalizedExt), blob })
+    outputs.push({ name: outputName(file, "compressed", normalizedExt), blob })
   }
 
-  onProgress?.(100, 'Done.')
-  return outputs.length === 1 ? outputs : [{ name: 'compressed-images.zip', blob: await makeZip(outputs) }]
+  onProgress?.(100, "Done.")
+  return outputs.length === 1 ? outputs : [{ name: "compressed-images.zip", blob: await makeZip(outputs) }]
 }
-
 // ---------------------------------------------------------------------------
 // Image Format Converter
 // ---------------------------------------------------------------------------
@@ -204,7 +210,7 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
     const file = images[i]
-    onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}…`)
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}â€¦`)
     const image = await loadImage(file.blob)
     const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
     const blob = await canvasToBlob(canvas, mime, outQuality)
@@ -247,7 +253,6 @@ const resolvePosition = (
       return { x: imageW - drawW - margin, y: imageH - drawH - margin }
   }
 }
-
 export const addWatermark = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const base = getFile(files, 'image')
   const overlays = files.filter((file) => file.name === 'watermark')
@@ -255,7 +260,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
   const hasImage = overlays.length > 0
   if (!hasImage && !text) throw new Error('Provide an overlay image and/or some text.')
 
-  onProgress?.(10, 'Loading base image…')
+  onProgress?.(10, 'Loading base imageâ€¦')
   const baseImage = await loadImage(base.blob)
   const position = stringParam(params, 'position', 'bottom-right')
   const opacity = Math.max(0.01, Math.min(1, numberParam(params, 'opacity', 100) / 100))
@@ -270,7 +275,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
 
   let overlayBottom = 0
   if (hasImage) {
-    onProgress?.(40, 'Overlaying image…')
+    onProgress?.(40, 'Overlaying imageâ€¦')
     const overlayImage = await loadImage(overlays[0].blob)
     const drawW = Math.max(1, Math.round(baseImage.naturalWidth * scale))
     const drawH = Math.max(1, Math.round(overlayImage.naturalHeight * (drawW / overlayImage.naturalWidth)))
@@ -283,7 +288,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
   }
 
   if (text) {
-    onProgress?.(70, 'Drawing text…')
+    onProgress?.(70, 'Drawing textâ€¦')
     const fontSize = numberParam(params, 'fontSize', 36)
     const fontName = stringParam(params, 'font', 'Arial')
     const fontStack = FONT_STACKS[fontName] ?? FONT_STACKS.Arial
@@ -305,14 +310,14 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
     ctx.restore()
   }
 
-  onProgress?.(90, 'Encoding…')
+  onProgress?.(90, 'Encodingâ€¦')
   const ext = fileExtension(base.name) || 'png'
   const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(base, 'watermarked', ext), blob }]
 }
 // ---------------------------------------------------------------------------
-// EXIF Metadata Stripper — re-encodes, dropping all EXIF metadata
+// EXIF Metadata Stripper â€” re-encodes, dropping all EXIF metadata
 // ---------------------------------------------------------------------------
 export const imageStripExif = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const format = stringParam(params, 'format', 'png')
@@ -320,18 +325,17 @@ export const imageStripExif = async (files: ToolFile[], params: ToolParams, onPr
   const srcExt = fileExtension(file.name) || 'png'
   const ext = format === 'keep' ? srcExt : format
 
-  onProgress?.(10, 'Loading image…')
+  onProgress?.(10, 'Loading imageâ€¦')
   const image = await loadImage(file.blob)
   const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
 
-  onProgress?.(50, 'Re-encoding…')
+  onProgress?.(50, 'Re-encodingâ€¦')
   const blob = await canvasToBlob(canvas, mimeFor(ext), ext === 'jpg' ? 0.9 : undefined)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(file, 'stripped', ext), blob }]
 }
-
 // ---------------------------------------------------------------------------
-// Image Crop & Rotate (visual editor — crop rect in %, rotation in degrees)
+// Image Crop & Rotate (visual editor â€” crop rect in %, rotation in degrees)
 // ---------------------------------------------------------------------------
 export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const input = getFile(files, 'image')
@@ -341,7 +345,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const cropHeight = Math.max(0, numberParam(params, 'cropHeight', 100))
   const rotate = numberParam(params, 'rotate', 0)
 
-  onProgress?.(10, 'Loading image…')
+  onProgress?.(10, 'Loading imageâ€¦')
   const image = await loadImage(input.blob)
   const srcW = image.naturalWidth
   const srcH = image.naturalHeight
@@ -352,7 +356,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const rotH = swapped ? srcW : srcH
 
   // --- Step 1: draw rotated image onto a canvas ---
-  onProgress?.(40, 'Rotating…')
+  onProgress?.(40, 'Rotatingâ€¦')
   const rotCanvas = document.createElement('canvas')
   rotCanvas.width = rotW
   rotCanvas.height = rotH
@@ -367,7 +371,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   rotCtx.restore()
 
   // --- Step 2: crop from the rotated canvas ---
-  onProgress?.(70, 'Cropping…')
+  onProgress?.(70, 'Croppingâ€¦')
   const cx = Math.max(0, Math.round((cropX / 100) * rotW))
   const cy = Math.max(0, Math.round((cropY / 100) * rotH))
   const cw = Math.min(rotW - cx, Math.max(1, Math.round((cropWidth / 100) * rotW)))
@@ -382,7 +386,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   outCtx.fillRect(0, 0, cw, ch)
   outCtx.drawImage(rotCanvas, cx, cy, cw, ch, 0, 0, cw, ch)
 
-  onProgress?.(90, 'Encoding…')
+  onProgress?.(90, 'Encodingâ€¦')
   const ext = fileExtension(input.name) || 'png'
   const blob = await canvasToBlob(outCanvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
