@@ -29,7 +29,7 @@ export interface ToolDefinition {
   inputs: ToolInput[]
   fields: ToolField[]
   visualEditor?: boolean
-  editor?: 'crop-rotate' | 'resize'
+  editor?: 'crop-rotate' | 'resize' | 'album'
 }
 
 export interface VisualEditorHandle {

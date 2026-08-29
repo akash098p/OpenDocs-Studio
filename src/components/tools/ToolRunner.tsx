@@ -5,6 +5,7 @@ import { FileUpload } from '@components/ui/FileUpload'
 import { OutputPreview } from '@components/tools/OutputPreview'
 import { ImageEditor } from './ImageEditor'
 import { ResizeEditor } from './ResizeEditor'
+import { AlbumEditor } from './AlbumEditor'
 import { FONT_STACKS } from '@/tools/helpers'
 import { useUIStore } from '@store/uiStore'
 import { ToolDefinition, ToolField, ToolFile, ToolOutput, ToolParams, VisualEditorHandle } from '@/tools/types'
@@ -104,7 +105,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
   const editorRef = useRef<VisualEditorHandle>(null)
 
   const editorInput = tool.visualEditor ? tool.inputs[0] : undefined
-  const editorFile = editorInput ? fileMap[editorInput.name]?.[0] : undefined
+  const editorFiles = editorInput ? fileMap[editorInput.name] || [] : []
 
   const setParam = (name: string, value: string) => setFieldValues((prev) => ({ ...prev, [name]: value }))
 
@@ -196,17 +197,21 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
 
             {tool.visualEditor && (
               <div>
-                {editorFile ? (
-                  tool.editor === 'resize' ? (
-                    <ResizeEditor ref={editorRef} file={editorFile} />
+                {editorFiles.length > 0 ? (
+                  tool.editor === 'album' ? (
+                    <AlbumEditor ref={editorRef} files={editorFiles} />
+                  ) : tool.editor === 'resize' ? (
+                    <ResizeEditor ref={editorRef} file={editorFiles[0]} />
                   ) : (
-                    <ImageEditor ref={editorRef} file={editorFile} />
+                    <ImageEditor ref={editorRef} file={editorFiles[0]} />
                   )
                 ) : (
                   <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-600 dark:text-slate-400">
-                    {tool.editor === 'resize'
-                      ? 'Add an image above to open the resize editor.'
-                      : 'Add an image above to open the crop & rotate editor.'}
+                    {tool.editor === 'album'
+                      ? 'Add photos above to open the album designer.'
+                      : tool.editor === 'resize'
+                        ? 'Add an image above to open the resize editor.'
+                        : 'Add an image above to open the crop & rotate editor.'}
                   </p>
                 )}
               </div>

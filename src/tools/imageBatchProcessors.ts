@@ -1,6 +1,7 @@
 import { ToolFile, ToolOutput, ToolParams } from './types'
 import { canvasToBlob, fileExtension, fileName, getFiles, loadImage, makeZip, mimeFor, numberParam, sanitizeFilename, stringParam } from './helpers'
 import { drawCanvas, Progress } from './imageProcessors'
+import { renderAlbum } from './albumRenderer'
 
 // ---------------------------------------------------------------------------
 // Batch Image Renamer
@@ -52,49 +53,33 @@ export const batchRename = async (files: ToolFile[], params: ToolParams, onProgr
 // Custom Album Creator
 // ---------------------------------------------------------------------------
 export const imageAlbum = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  const images = getFiles(files, 'images')
-  if (!images.length) throw new Error('Provide at least one image.')
+  const filesIn = getFiles(files, 'images')
+  if (!filesIn.length) throw new Error('Provide at least one image.')
 
-  const thumbW = numberParam(params, 'thumbW', 480)
-  const thumbH = numberParam(params, 'thumbH', 360)
-  const columns = Math.max(1, numberParam(params, 'columns', 3))
-  const spacing = numberParam(params, 'spacing', 8)
-  const fit = stringParam(params, 'fit', 'stretch')
-  const colorRaw = stringParam(params, 'color', '000000').replace(/^#/, '')
-  const format = stringParam(params, 'format', 'png')
-  const rows = Math.ceil(images.length / columns)
-  const outW = Math.max(1, thumbW * columns + spacing * (columns - 1))
-  const outH = Math.max(1, thumbH * rows + spacing * (rows - 1))
-
-  const canvas = document.createElement('canvas')
-  canvas.width = outW
-  canvas.height = outH
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Could not create canvas context.')
-
-  const isValidColor = /^([0-9a-fA-F]{6})$/.test(colorRaw)
-  ctx.fillStyle = isValidColor ? `#${colorRaw}` : colorRaw || '#000000'
-  ctx.fillRect(0, 0, outW, outH)
-
-  for (let i = 0; i < images.length; i += 1) {
-    onProgress?.(Math.round((i / images.length) * 100), `Placing photo ${i + 1}/${images.length}...`)
-    const img = await loadImage(images[i].blob)
-    const col = i % columns
-    const row = Math.floor(i / columns)
-    const x = col * (thumbW + spacing)
-    const y = row * (thumbH + spacing)
-
-    if (fit === 'cover') {
-      const scale = Math.max(thumbW / img.naturalWidth, thumbH / img.naturalHeight)
-      const sx = (img.naturalWidth - thumbW / scale) / 2
-      const sy = (img.naturalHeight - thumbH / scale) / 2
-      ctx.drawImage(img, sx, sy, thumbW / scale, thumbH / scale, x, y, thumbW, thumbH)
-    } else {
-      ctx.drawImage(img, x, y, thumbW, thumbH)
-    }
+  onProgress?.(5, 'Loading images…')
+  const loaded: HTMLImageElement[] = []
+  for (let i = 0; i < filesIn.length; i += 1) {
+    onProgress?.(5 + Math.round((i / filesIn.length) * 55), `Loading ${i + 1}/${filesIn.length}…`)
+    loaded.push(await loadImage(filesIn[i].blob))
   }
 
-  onProgress?.(90, 'Encoding...')
+  onProgress?.(70, 'Composing album…')
+  const canvas = renderAlbum({
+    images: loaded,
+    template: stringParam(params, 'template', 'classic'),
+    thumbW: numberParam(params, 'thumbW', 480),
+    thumbH: numberParam(params, 'thumbH', 360),
+    columns: numberParam(params, 'columns', 3),
+    spacing: numberParam(params, 'spacing', 12),
+    fit: stringParam(params, 'fit', 'cover') === 'stretch' ? 'stretch' : 'cover',
+    cornerRadius: numberParam(params, 'cornerRadius', 0),
+    frameWidth: numberParam(params, 'frameWidth', 0),
+    frameColor: stringParam(params, 'frameColor', '#FFFFFF'),
+    background: stringParam(params, 'background', '#FFFFFF'),
+  })
+
+  onProgress?.(90, 'Encoding…')
+  const format = stringParam(params, 'format', 'png')
   const blob = await canvasToBlob(canvas, mimeFor(format), format === 'jpg' ? 0.9 : undefined)
   onProgress?.(100, 'Done.')
   return [{ name: `album-image.${format}`, blob }]
