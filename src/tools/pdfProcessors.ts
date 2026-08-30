@@ -1,4 +1,4 @@
-﻿import { PDFDocument, degrees } from 'pdf-lib'
+﻿import { PDFDocument, PDFFont, PDFImage, StandardFonts, degrees, rgb } from 'pdf-lib'
 import { ToolFile, ToolOutput, ToolParams } from './types'
 import { fileName, getFile, getFiles, loadImage, makeZip, numberParam, sanitizeFilename, stringParam } from './helpers'
 import { Progress } from './imageProcessors'
@@ -219,8 +219,8 @@ const loadImageFromBlob = (blob: Blob): Promise<HTMLImageElement> =>
   })
 
 /** Renders a single pdfjs page to a JPEG blob. One encode per page. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderPageToJpegBlob = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   scale: number,
   quality: number,
@@ -241,8 +241,8 @@ const renderPageToJpegBlob = async (
 }
 
 /** Renders every page of a pdfjs document at the given scale and JPEG quality. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderAllPages = async (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pdf: any,
   scale: number,
   quality: number,
@@ -469,4 +469,346 @@ export const pdfToImages = async (files: ToolFile[], params: ToolParams, onProgr
 
   onProgress?.(100, 'Done.')
   return outputs
+}
+// ---------------------------------------------------------------------------
+// PDF Watermark
+//   Stamps an optional logo image and/or text onto every page. The watermark
+//   is drawn as real PDF content (embedded image + text with an ExtGState
+//   opacity), so the original text stays selectable and the file stays small.
+// ---------------------------------------------------------------------------
+const FONT_TO_STANDARD: Record<string, StandardFonts> = {
+  Arial: StandardFonts.Helvetica,
+  Verdana: StandardFonts.Helvetica,
+  Tahoma: StandardFonts.Helvetica,
+  'Trebuchet MS': StandardFonts.Helvetica,
+  Impact: StandardFonts.HelveticaBold,
+  Georgia: StandardFonts.TimesRoman,
+  'Times New Roman': StandardFonts.TimesRoman,
+  'Courier New': StandardFonts.Courier,
+  'Comic Sans MS': StandardFonts.Helvetica,
+  'Palatino Linotype': StandardFonts.TimesRoman,
+}
+
+/** Positions a drawW x drawH box on a page. PDF origin is bottom-left, y grows up. */
+const resolvePdfAnchor = (
+  position: string,
+  pageW: number,
+  pageH: number,
+  drawW: number,
+  drawH: number,
+): { x: number; y: number } => {
+  const margin = Math.round(Math.min(pageW, pageH) * 0.03)
+  switch (position) {
+    case 'top-left':
+      return { x: margin, y: pageH - drawH - margin }
+    case 'top-right':
+      return { x: pageW - drawW - margin, y: pageH - drawH - margin }
+    case 'bottom-left':
+      return { x: margin, y: margin }
+    case 'center':
+      return { x: (pageW - drawW) / 2, y: (pageH - drawH) / 2 }
+    case 'top':
+      return { x: (pageW - drawW) / 2, y: pageH - drawH - margin }
+    case 'bottom':
+      return { x: (pageW - drawW) / 2, y: margin }
+    case 'left':
+      return { x: margin, y: (pageH - drawH) / 2 }
+    case 'right':
+      return { x: pageW - drawW - margin, y: (pageH - drawH) / 2 }
+    case 'bottom-right':
+    default:
+      return { x: pageW - drawW - margin, y: margin }
+  }
+}
+
+const hexToRgbFloats = (hex: string): { r: number; g: number; b: number } => {
+  const raw = String(hex || '').replace(/^#/, '').trim()
+  if (!/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(raw)) return { r: 1, g: 1, b: 1 }
+  const expanded = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw
+  return {
+    r: parseInt(expanded.slice(0, 2), 16) / 255,
+    g: parseInt(expanded.slice(2, 4), 16) / 255,
+    b: parseInt(expanded.slice(4, 6), 16) / 255,
+  }
+}
+
+const embedWatermarkImage = async (doc: PDFDocument, blob: Blob): Promise<PDFImage> => {
+  const bytes = new Uint8Array(await blob.arrayBuffer())
+  const isPng = bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47
+  const isJpg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+  if (isPng) return doc.embedPng(bytes)
+  if (isJpg) return doc.embedJpg(bytes)
+  // Any other format (WebP, GIF, BMP, ...) -> re-encode to PNG on a canvas.
+  const image = await loadImage(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = image.naturalWidth
+  canvas.height = image.naturalHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not decode the watermark image.')
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.drawImage(image, 0, 0)
+  const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+  if (!png) throw new Error('Could not encode the watermark image.')
+  return doc.embedPng(new Uint8Array(await png.arrayBuffer()))
+}
+
+export const pdfWatermark = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const overlays = files.filter((f) => f.name === 'watermark')
+  const text = stringParam(params, 'text', '').trim()
+  const hasImage = overlays.length > 0
+  if (!hasImage && !text) throw new Error('Provide a watermark image and/or some text.')
+
+  const position = stringParam(params, 'position', 'bottom-right')
+  const opacity = Math.max(0.01, Math.min(1, numberParam(params, 'opacity', 100) / 100))
+  const scale = Math.max(0.05, numberParam(params, 'scale', 30) / 100)
+  const fontSize = Math.max(4, numberParam(params, 'fontSize', 36))
+
+  onProgress?.(10, 'Loading PDF...')
+  const doc = await loadPdf(file.blob)
+  const total = doc.getPageCount()
+
+  let watermarkImage: PDFImage | null = null
+  if (hasImage) {
+    onProgress?.(25, 'Embedding watermark image...')
+    watermarkImage = await embedWatermarkImage(doc, overlays[0].blob)
+  }
+
+  let font: PDFFont | null = null
+  if (text) {
+    const fontName = stringParam(params, 'font', 'Arial')
+    font = await doc.embedFont(FONT_TO_STANDARD[fontName] ?? StandardFonts.Helvetica)
+  }
+  const color = hexToRgbFloats(stringParam(params, 'color', '#FFFFFF'))
+
+  for (let i = 0; i < total; i += 1) {
+    onProgress?.(Math.round((i / total) * 65) + 25, `Watermarking page ${i + 1}/${total}...`)
+    const page = doc.getPage(i)
+    const { width: pageW, height: pageH } = page.getSize()
+
+    if (watermarkImage) {
+      const drawW = Math.max(1, pageW * scale)
+      const drawH = Math.max(1, drawW * (watermarkImage.height / watermarkImage.width))
+      const pos = resolvePdfAnchor(position, pageW, pageH, drawW, drawH)
+      page.drawImage(watermarkImage, { x: pos.x, y: pos.y, width: drawW, height: drawH, opacity })
+    }
+
+    if (text && font) {
+      const blockW = font.widthOfTextAtSize(text, fontSize)
+      const blockH = fontSize
+      const pos = resolvePdfAnchor(position, pageW, pageH, blockW, blockH)
+      // Baseline sits slightly inside the block so the visible glyph box
+      // matches the anchor exactly (approx 20% descender / 80% ascender).
+      page.drawText(text, {
+        x: pos.x,
+        y: pos.y + fontSize * 0.2,
+        size: fontSize,
+        font,
+        color: rgb(color.r, color.g, color.b),
+        opacity: Math.max(0.05, opacity),
+      })
+    }
+  }
+
+  onProgress?.(95, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: 'watermarked.pdf', blob }]
+}
+// ---------------------------------------------------------------------------
+// Protect PDF - encrypts the file with a password (AES-256 or RC4) and
+//   optional permission restrictions. Runs entirely client-side using the
+//   @pdfsmaller/pdf-encrypt engine (built on pdf-lib + Web Crypto).
+// ---------------------------------------------------------------------------
+interface PdfProtectPermissions {
+  allowPrinting: boolean
+  allowModifying: boolean
+  allowCopying: boolean
+  allowAnnotating: boolean
+  allowFillingForms: boolean
+  allowExtraction: boolean
+  allowAssembly: boolean
+  allowHighQualityPrint: boolean
+}
+
+const permissionPresets: Record<string, PdfProtectPermissions> = {
+  'no restrictions': {
+    allowPrinting: true,
+    allowModifying: true,
+    allowCopying: true,
+    allowAnnotating: true,
+    allowFillingForms: true,
+    allowExtraction: true,
+    allowAssembly: true,
+    allowHighQualityPrint: true,
+  },
+  'prevent printing': {
+    allowPrinting: false,
+    allowModifying: true,
+    allowCopying: true,
+    allowAnnotating: true,
+    allowFillingForms: true,
+    allowExtraction: true,
+    allowAssembly: true,
+    allowHighQualityPrint: false,
+  },
+  'view only': {
+    allowPrinting: false,
+    allowModifying: false,
+    allowCopying: false,
+    allowAnnotating: false,
+    allowFillingForms: false,
+    allowExtraction: true,
+    allowAssembly: false,
+    allowHighQualityPrint: false,
+  },
+}
+
+export const pdfProtect = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const password = stringParam(params, 'password', '')
+  if (!password) throw new Error('Provide a password to protect the PDF.')
+  const ownerPassword = stringParam(params, 'ownerPassword', '') || password
+  const algorithm = stringParam(params, 'algorithm', 'AES-256') === 'RC4' ? 'RC4' : 'AES-256'
+  const permissions = permissionPresets[stringParam(params, 'restrictions', 'no restrictions')] ?? permissionPresets['no restrictions']
+
+  onProgress?.(10, 'Reading PDF...')
+  const bytes = new Uint8Array(await file.blob.arrayBuffer())
+
+  const { isEncrypted } = await import('@pdfsmaller/pdf-decrypt')
+  let alreadyProtected = false
+  try {
+    alreadyProtected = (await isEncrypted(bytes)).encrypted
+  } catch {
+    throw new Error('Not a valid PDF file.')
+  }
+  if (alreadyProtected) {
+    throw new Error('This PDF is already password-protected. Unlock it first if you want to apply a different password.')
+  }
+
+  onProgress?.(25, 'Encrypting...')
+  const { encryptPDF } = await import('@pdfsmaller/pdf-encrypt')
+  let encrypted: Uint8Array
+  try {
+    encrypted = await encryptPDF(bytes, password, { ownerPassword, algorithm, ...permissions })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('already encrypted')) throw new Error('This PDF is already password-protected.')
+    if (message.includes('password')) throw new Error(`The password could not be stored for ${algorithm} encryption: ${message}`)
+    throw new Error(`Could not protect the PDF: ${message || 'unknown error'}`)
+  }
+
+  onProgress?.(90, 'Saving...')
+  const blob = new Blob([encrypted.slice(0)], { type: 'application/pdf' })
+  onProgress?.(100, 'Done.')
+  return [{ name: 'protected.pdf', blob }]
+}
+// ---------------------------------------------------------------------------
+// Unlock PDF - removes password protection.
+//   Primary path uses @pdfsmaller/pdf-decrypt (AES-256 / RC4, content-
+//   preserving). If the lock uses a legacy algorithm it cannot handle
+//   (e.g. AES-128 / R4), a pdf.js fallback re-renders the pages and rebuilds
+//   an unencrypted PDF instead.
+// ---------------------------------------------------------------------------
+const unlockViaRendering = async (
+  bytes: Uint8Array,
+  password: string,
+  onProgress?: Progress,
+): Promise<ToolOutput[]> => {
+  onProgress?.(20, 'Rendering pages (legacy encryption)...')
+  const pdfjsLib = await import('pdfjs-dist')
+  const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default as string
+
+  let pdf: unknown
+  try {
+    pdf = await pdfjsLib.getDocument({ data: bytes, password: password || undefined }).promise
+  } catch (error) {
+    const err = error as { name?: string }
+    if (err?.name === 'PasswordException') {
+      throw new Error(
+        password
+          ? 'Incorrect password — please check it and try again.'
+          : 'This PDF is password-protected. Enter the password above to unlock it.',
+      )
+    }
+    throw new Error('Not a valid PDF file.')
+  }
+
+  const doc = await PDFDocument.create()
+  const scale = 1.5
+  for (let i = 1; i <= (pdf as { numPages: number }).numPages; i += 1) {
+    onProgress?.(Math.round((i / (pdf as { numPages: number }).numPages) * 70) + 20, `Rendering page ${i}/${(pdf as { numPages: number }).numPages}...`)
+    const page = await (pdf as { getPage: (n: number) => Promise<unknown> }).getPage(i)
+    const pageData = page as {
+      getViewport: (opts: { scale: number }) => { width: number; height: number }
+      render: (opts: { canvasContext: CanvasRenderingContext2D; viewport: unknown; canvas: HTMLCanvasElement }) => { promise: Promise<unknown> }
+    }
+    const viewport = pageData.getViewport({ scale })
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.max(1, Math.floor(viewport.width))
+    canvas.height = Math.max(1, Math.floor(viewport.height))
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not create canvas context.')
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    await pageData.render({ canvasContext: ctx, viewport, canvas }).promise
+    const jpeg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85))
+    if (!jpeg) throw new Error('Could not encode the rendered page.')
+    const embedded = await doc.embedJpg(new Uint8Array(await jpeg.arrayBuffer()))
+    // Keep the original page size in points; the render simply fills it.
+    const outPage = doc.addPage([viewport.width / scale, viewport.height / scale])
+    outPage.drawImage(embedded, { x: 0, y: 0, width: viewport.width / scale, height: viewport.height / scale })
+  }
+
+  onProgress?.(95, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: 'unlocked.pdf', blob }]
+}
+
+export const pdfUnlock = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const password = stringParam(params, 'password', '')
+  const bytes = new Uint8Array(await file.blob.arrayBuffer())
+
+  onProgress?.(10, 'Reading PDF...')
+  const { decryptPDF, isEncrypted } = await import('@pdfsmaller/pdf-decrypt')
+  let info: { encrypted: boolean }
+  try {
+    info = await isEncrypted(bytes)
+  } catch {
+    throw new Error('Not a valid PDF file.')
+  }
+  if (!info.encrypted) {
+    onProgress?.(100, 'Done - this PDF is not protected.')
+    return [{ name: 'unlocked.pdf', blob: file.blob }]
+  }
+
+  try {
+    onProgress?.(25, 'Unlocking...')
+    const decrypted = await decryptPDF(bytes, password)
+    onProgress?.(90, 'Saving...')
+    const blob = new Blob([decrypted.slice(0)], { type: 'application/pdf' })
+    onProgress?.(100, 'Done.')
+    return [{ name: 'unlocked.pdf', blob }]
+  } catch (error) {
+    const message = error instanceof Error ? error.message : ''
+    if (message.includes('not encrypted')) {
+      onProgress?.(100, 'Done - this PDF is not protected.')
+      return [{ name: 'unlocked.pdf', blob: file.blob }]
+    }
+    if (message.includes('Incorrect password')) {
+      throw new Error(
+        password
+          ? 'Incorrect password — please check it and try again.'
+          : 'This PDF is password-protected. Enter the password above to unlock it.',
+      )
+    }
+    if (message.includes('Unsupported encryption')) {
+      return unlockViaRendering(bytes, password, onProgress)
+    }
+    throw new Error(`Could not unlock the PDF: ${message || 'unknown error'}`)
+  }
 }
