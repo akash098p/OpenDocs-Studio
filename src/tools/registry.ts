@@ -33,7 +33,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Base64 Converter',
     group: 'Image',
     icon: '/tools-icons/base64 converter.png',
-    description: 'Encode images into Base64 (data URI or raw) for HTML/CSS embedding, or decode a Base64 / data-URI text file back into its original file. Pick the mode first — only the matching file slot is shown.',
+    description: 'Encode images into Base64 (data URI or raw) for HTML/CSS embedding, or decode a Base64 / data-URI text file back into its original file.',
     inputs: [
       { name: 'image', label: 'Image files', accept: 'image/*', multiple: true, optional: true, visibleWhen: { field: 'mode', equals: 'encode' } },
       { name: 'text', label: 'Base64 text file', accept: '.txt,.b64,.base64,text/plain', optional: true, visibleWhen: { field: 'mode', equals: 'decode' } },
@@ -79,7 +79,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Adjustments & Enhancement',
     group: 'Image',
     icon: '/tools-icons/adjustment & enhancement .png',
-    description: 'One-pass photo tune-up — brightness, contrast, saturation, hue, color temperature, sharpening, blur, sepia and grayscale, with a live preview that updates as you move the sliders. All offline in your browser.',
+    description: 'One-pass photo tune-up — brightness, contrast, saturation, hue, color temperature, sharpening, blur, sepia and grayscale.',
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     livePreview: true,
     fields: [
@@ -134,7 +134,7 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Resize',
     group: 'Image',
     icon: '/tools-icons/image resize.png',
-    description: 'Visually rescale an image by dragging a handle over the original — exact size or fit-inside box, with aspect-ratio lock and a live preview.',
+    description: 'Visually rescale an image, exact size or fit-inside box, with aspect-ratio lock and a live preview.',
     inputs: [{ name: 'image', label: 'Image file', accept: 'image/*' }],
     fields: [],
     visualEditor: true,
