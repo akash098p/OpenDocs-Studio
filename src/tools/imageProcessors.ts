@@ -1,6 +1,7 @@
 ﻿import { ToolFile, ToolOutput, ToolParams } from './types'
 import {
   canvasToBlob,
+  canvasToCompressedPng,
   fileExtension,
   FONT_STACKS,
   getFile,
@@ -159,6 +160,26 @@ const findQualityForTargetSize = async (
   return best!
 }
 
+/** Binary-search the palette size that lands a compressed PNG at or below the target size. */
+const findPngColorCountForTargetSize = async (image: HTMLImageElement, target: number): Promise<Blob> => {
+  let low = 2
+  let high = 256
+  let best: Blob | null = null
+  for (let iter = 0; iter < 7; iter += 1) {
+    const colors = Math.round((low + high) / 2)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+    const blob = await canvasToCompressedPng(canvas, colors)
+    if (!best || blob.size < best.size) best = blob
+    if (blob.size <= target) low = colors
+    else high = colors
+  }
+  // One final pass at the lower bound to be sure we land at or below target.
+  const finalCanvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const finalBlob = await canvasToCompressedPng(finalCanvas, low)
+  if (!best || finalBlob.size < best.size) best = finalBlob
+  return best!
+}
+
 export const imageCompress = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const mode = stringParam(params, "mode", "percentage") === "targetSize" ? "targetSize" : "percentage"
   const qualityPct = Math.max(1, Math.min(100, numberParam(params, "quality", 75)))
@@ -167,42 +188,53 @@ export const imageCompress = async (files: ToolFile[], params: ToolParams, onPro
   const images = getFiles(files, "image")
   if (!images.length) throw new Error("Provide at least one image.")
 
+  // PNG color-count derived from the same quality slider (1–100 → 8–256 colors).
+  const pngColors = Math.max(8, Math.round((qualityPct / 100) * 256))
+  // Quality as 0..1 used by native lossy encoders (JPG / WebP).
+  const q = percentToJpegQuality(qualityPct)
+
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
     const file = images[i]
     onProgress?.(Math.round((i / images.length) * 90) + 5, `Compressing ${i + 1}/${images.length}...`)
 
     const srcExt = fileExtension(file.name) || "png"
-    // PNG output is kept when the source is PNG and the user picked "auto" —
-    // re-encoding a lossless PNG in the browser only makes it larger.
+    // "auto" keeps the source format, so PNG sources get the PNG path below.
     const ext = format === "auto" ? srcExt : format
     const normalizedExt = ext === "jpeg" ? "jpg" : ext
 
     onProgress?.(Math.round((i / images.length) * 90) + 5, `Loading ${file.name}...`)
     const image = await loadImage(file.blob)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
 
-    // Quality as 0..1 used by canvas.toBlob. Linear scale — 75 means 0.75.
-    const q = percentToJpegQuality(qualityPct)
     let blob: Blob
-
     if (isLossyExt(normalizedExt)) {
       const mime = lossyMime(normalizedExt)!
       if (mode === "targetSize") {
         blob = await findQualityForTargetSize(image, mime, target)
       } else {
-        const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
         blob = await compressAtQuality(canvas, mime, q)
       }
       // If the re-encoded blob is bigger than the source, return the source.
       if (blob.size > file.blob.size) blob = file.blob
+    } else if (normalizedExt === "png") {
+      // PNG (incl. "auto" on a PNG source): re-encode as an indexed PNG with a
+      // reduced palette so the file can actually shrink. Color count follows
+      // the quality slider; target-size mode binary-searches the palette size.
+      if (mode === "targetSize") {
+        blob = await findPngColorCountForTargetSize(image, target)
+      } else {
+        blob = await canvasToCompressedPng(canvas, pngColors)
+      }
+      // Never return a larger file than the input when re-compressing a PNG.
+      if (srcExt === "png" && blob.size > file.blob.size) blob = file.blob
     } else if (normalizedExt === srcExt) {
-      // Same-format PNG/BMP: re-encoding is lossless but the new file is almost
-      // always bigger. Just return the source untouched.
+      // Same-format BMP: BMP is an uncompressed format — nothing to save.
       blob = file.blob
     } else {
-      // Cross-format (e.g. PNG -> JPG): JPEG re-encode is a real shrinker.
-      const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
-      blob = await compressAtQuality(canvas, "image/jpeg", q)
+      // Cross-format lossless target (e.g. JPG or PNG -> BMP): use the target
+      // format instead of re-encoding the pixels as JPEG.
+      blob = await canvasToBlob(canvas, mimeFor(normalizedExt))
     }
 
     outputs.push({ name: outputName(file, "compressed", normalizedExt), blob })
@@ -220,8 +252,14 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
   const images = getFiles(files, 'image')
   if (!images.length) throw new Error('Provide at least one image.')
 
-  const mime = mimeFor(format)
-  const outQuality = format === 'png' || format === 'bmp' ? undefined : Math.max(0.1, Math.min(1, quality))
+  const normalizedFormat = format === 'jpeg' ? 'jpg' : format
+  const mime = mimeFor(normalizedFormat)
+  // Quality is only passed through to lossy encoders (JPG, WebP, AVIF).
+  // PNG, BMP, GIF and ICO encode losslessly and ignore it.
+  const outQuality =
+    normalizedFormat === 'jpg' || normalizedFormat === 'webp' || normalizedFormat === 'avif'
+      ? Math.max(0.1, Math.min(1, quality))
+      : undefined
 
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
@@ -230,7 +268,7 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
     const image = await loadImage(file.blob)
     const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
     const blob = await canvasToBlob(canvas, mime, outQuality)
-    outputs.push({ name: `converted-${file.name.replace(/\.[^.]+$/, '')}.${format}`, blob })
+    outputs.push({ name: `converted-${file.name.replace(/\.[^.]+$/, '')}.${normalizedFormat}`, blob })
   }
 
   onProgress?.(100, 'Done.')
