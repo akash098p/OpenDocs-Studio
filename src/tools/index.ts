@@ -11,6 +11,7 @@ import {
   base64Convert,
 } from './imageProcessors'
 import { batchRename, imageAlbum } from './imageBatchProcessors'
+import { imageRemoveBackground } from './backgroundRemoval'
 import {
   pdfMerge,
   pdfSplit,
@@ -53,6 +54,8 @@ export const runTool = async (
       return batchRename(files, params, onProgress)
     case 'image-album':
       return imageAlbum(files, params, onProgress)
+    case 'image-background-erase':
+      return imageRemoveBackground(files, params, onProgress)
     case 'pdf-merge':
       return pdfMerge(files, params, onProgress)
     case 'pdf-split':
