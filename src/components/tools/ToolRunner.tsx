@@ -6,6 +6,7 @@ import { OutputPreview } from '@components/tools/OutputPreview'
 import { ImageEditor } from './ImageEditor'
 import { ResizeEditor } from './ResizeEditor'
 import { AlbumEditor } from './AlbumEditor'
+import { AdjustPreview } from './AdjustPreview'
 import { FONT_STACKS } from '@/tools/helpers'
 import { useUIStore } from '@store/uiStore'
 import { ToolDefinition, ToolField, ToolFile, ToolOutput, ToolParams, VisualEditorHandle } from '@/tools/types'
@@ -15,6 +16,11 @@ interface ToolRunnerProps {
   tool: ToolDefinition
   onBack: () => void
 }
+
+// Shared visibility gate for fields and inputs that depend on another field's value
+// (e.g. the Base64 Converter's mode switch decides which file slot is shown).
+const isVisible = (gate: { field: string; equals: string } | undefined, values: Record<string, string>): boolean =>
+  !gate || values[gate.field] === gate.equals
 
 const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (value: string) => void }> = ({ field, value, onChange }) => {
   const sharedClass =
@@ -59,6 +65,31 @@ const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (val
         onChange={(event) => onChange(event.target.value)}
         className={sharedClass}
       />
+    )
+  }
+  if (field.type === 'range') {
+    // Compact single-line slider row: label + bar + current value. The wrapping
+    // div is a flex row (ToolRunner skips the stacked label for range fields).
+    return (
+      <>
+        <label htmlFor={`field-${field.name}`} className="w-28 shrink-0 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300">
+          {field.label}
+        </label>
+        <input
+          id={`field-${field.name}`}
+          name={field.name}
+          type="range"
+          value={value}
+          min={field.min}
+          max={field.max}
+          step={field.step}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 flex-1 cursor-pointer accent-primary-600"
+        />
+        <span className="w-14 shrink-0 rounded-md bg-slate-100 py-0.5 text-center text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          {value}
+        </span>
+      </>
     )
   }
   if (field.type === 'color') {
@@ -119,12 +150,14 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
 
   const editorInput = tool.visualEditor ? tool.inputs[0] : undefined
   const editorFiles = editorInput ? fileMap[editorInput.name] || [] : []
+  const previewFile = tool.livePreview ? fileMap[tool.inputs[0]?.name || '']?.[0] : undefined
 
   const setParam = (name: string, value: string) => setFieldValues((prev) => ({ ...prev, [name]: value }))
 
   const handleRun = async () => {
     const files: ToolFile[] = []
     for (const input of tool.inputs) {
+      if (!isVisible(input.visibleWhen, fieldValues)) continue
       const list = fileMap[input.name] || []
       for (let i = 0; i < list.length; i += 1) {
         files.push({ name: input.name, blob: list[i] })
@@ -133,6 +166,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
 
     for (const input of tool.inputs) {
       if (input.optional) continue
+      if (!isVisible(input.visibleWhen, fieldValues)) continue
       if (!files.some((file) => file.name === input.name)) {
         addNotification({ type: 'error', message: `Please choose ${input.label.toLowerCase()}.` })
         return
@@ -197,7 +231,16 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
       <CardContent>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-5">
-            {tool.inputs.map((input) => (
+            {tool.fields.filter((field) => field.position === 'top' && isVisible(field.visibleWhen, fieldValues)).map((field) => (
+              <div key={field.name} className={field.type === 'range' ? 'flex items-center gap-3' : undefined}>
+                {field.type !== 'range' && (
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</label>
+                )}
+                <ToolFieldInput field={field} value={fieldValues[field.name] ?? ''} onChange={(value) => setParam(field.name, value)} />
+              </div>
+            ))}
+
+            {tool.inputs.filter((input) => isVisible(input.visibleWhen, fieldValues)).map((input) => (
               <FileUpload
                 key={input.name}
                 label={input.label}
@@ -230,12 +273,11 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               </div>
             )}
 
-            {tool.fields.filter((field) => {
-              if (!field.visibleWhen) return true
-              return fieldValues[field.visibleWhen.field] === field.visibleWhen.equals
-            }).map((field) => (
-              <div key={field.name}>
-                <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</label>
+            {tool.fields.filter((field) => field.position !== 'top' && isVisible(field.visibleWhen, fieldValues)).map((field) => (
+              <div key={field.name} className={field.type === 'range' ? 'flex items-center gap-3' : undefined}>
+                {field.type !== 'range' && (
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">{field.label}</label>
+                )}
                 <ToolFieldInput field={field} value={fieldValues[field.name] ?? ''} onChange={(value) => setParam(field.name, value)} />
               </div>
             ))}
@@ -246,6 +288,11 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
           </div>
 
           <div>
+            {previewFile && (
+              <div className="mb-4">
+                <AdjustPreview file={previewFile} values={fieldValues} />
+              </div>
+            )}
             {outputs ? (
               <OutputPreview outputs={outputs} onClear={handleClear} />
             ) : (
