@@ -77,7 +77,7 @@ const PDFThumbnail: React.FC<{ blob: Blob }> = ({ blob }) => {
 
 const renderPreview = (output: ToolOutput): React.ReactNode => {
   const ext = fileExtension(output.name)
-  const isImage = output.blob.type.startsWith('image/')
+  const isImage = output.blob.type.startsWith('image/') && output.blob.type !== 'image/x-icon'
   const isPdf = ext === 'pdf' || output.blob.type === 'application/pdf'
   if (isImage) return <ImagePreview blob={output.blob} />
   if (isPdf) return <PDFThumbnail blob={output.blob} />
