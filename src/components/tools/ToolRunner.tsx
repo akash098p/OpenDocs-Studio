@@ -146,7 +146,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
       if (!result.length) throw new Error('Tool produced no output.')
 
       setOutputs(result)
-      setStatus('Done â€” preview ready.')
+      setStatus('Done — preview ready.')
       setProgress(100)
       addNotification({ type: 'success', message: 'Tool completed successfully.' })
     } catch (error) {
@@ -177,7 +177,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onBack} type="button">
-            â† All tools
+            ← All tools
           </Button>
         </div>
       </CardHeader>
@@ -239,7 +239,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900">
                 <p className="font-semibold">Output appears here</p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  Your files are processed entirely in this browser â€” nothing is uploaded anywhere.
+                  Your files are processed entirely in this browser — nothing is uploaded anywhere.
                 </p>
               </div>
             )}
