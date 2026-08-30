@@ -49,7 +49,7 @@ export const outputName = (file: ToolFile, prefix: string, ext: string): string 
 // Image Resize
 // ---------------------------------------------------------------------------
 export const imageResize = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
-  onProgress?.(10, 'Loading imageâ€¦')
+  onProgress?.(10, 'Loading image…')
   const image = await loadImage(getFile(files, 'image').blob)
   const srcW = image.naturalWidth
   const srcH = image.naturalHeight
@@ -81,7 +81,7 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
   const algo = stringParam(params, 'algo', 'bicubic')
   const smoothing = algo === 'nearest' ? 'off' : algo === 'bilinear' || algo === 'area' ? 'medium' : 'high'
 
-  onProgress?.(50, 'Scalingâ€¦')
+  onProgress?.(50, 'Scaling…')
   const canvas = drawCanvas(image, outW, outH, smoothing)
   const ext = fileExtension(getFile(files, 'image').name) || 'png'
   const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
@@ -90,8 +90,8 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
 }
 // ---------------------------------------------------------------------------
 // Image Compress
-//   - mode = 'percentage' â†’ use the given quality (1â€“100) directly
-//   - mode = 'targetSize' â†’ binary-search the lowest quality that fits the
+//   - mode = 'percentage' → use the given quality (1–100) directly
+//   - mode = 'targetSize' → binary-search the lowest quality that fits the
 //     given target size in KB or MB. Falls back to the best quality if the
 //     target is unreachable (e.g. already too small or PNG output).
 // ---------------------------------------------------------------------------
@@ -226,7 +226,7 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
     const file = images[i]
-    onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}â€¦`)
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}…`)
     const image = await loadImage(file.blob)
     const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
     const blob = await canvasToBlob(canvas, mime, outQuality)
@@ -276,7 +276,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
   const hasImage = overlays.length > 0
   if (!hasImage && !text) throw new Error('Provide an overlay image and/or some text.')
 
-  onProgress?.(10, 'Loading base imageâ€¦')
+  onProgress?.(10, 'Loading base image…')
   const baseImage = await loadImage(base.blob)
   const position = stringParam(params, 'position', 'bottom-right')
   const opacity = Math.max(0.01, Math.min(1, numberParam(params, 'opacity', 100) / 100))
@@ -291,7 +291,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
 
   let overlayBottom = 0
   if (hasImage) {
-    onProgress?.(40, 'Overlaying imageâ€¦')
+    onProgress?.(40, 'Overlaying image…')
     const overlayImage = await loadImage(overlays[0].blob)
     const drawW = Math.max(1, Math.round(baseImage.naturalWidth * scale))
     const drawH = Math.max(1, Math.round(overlayImage.naturalHeight * (drawW / overlayImage.naturalWidth)))
@@ -304,7 +304,7 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
   }
 
   if (text) {
-    onProgress?.(70, 'Drawing textâ€¦')
+    onProgress?.(70, 'Drawing text…')
     const fontSize = numberParam(params, 'fontSize', 36)
     const fontName = stringParam(params, 'font', 'Arial')
     const fontStack = FONT_STACKS[fontName] ?? FONT_STACKS.Arial
@@ -326,14 +326,14 @@ export const addWatermark = async (files: ToolFile[], params: ToolParams, onProg
     ctx.restore()
   }
 
-  onProgress?.(90, 'Encodingâ€¦')
+  onProgress?.(90, 'Encoding…')
   const ext = fileExtension(base.name) || 'png'
   const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(base, 'watermarked', ext), blob }]
 }
 // ---------------------------------------------------------------------------
-// EXIF Metadata Stripper â€” re-encodes, dropping all EXIF metadata
+// EXIF Metadata Stripper — re-encodes, dropping all EXIF metadata
 // ---------------------------------------------------------------------------
 export const imageStripExif = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const format = stringParam(params, 'format', 'png')
@@ -341,17 +341,17 @@ export const imageStripExif = async (files: ToolFile[], params: ToolParams, onPr
   const srcExt = fileExtension(file.name) || 'png'
   const ext = format === 'keep' ? srcExt : format
 
-  onProgress?.(10, 'Loading imageâ€¦')
+  onProgress?.(10, 'Loading image…')
   const image = await loadImage(file.blob)
   const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
 
-  onProgress?.(50, 'Re-encodingâ€¦')
+  onProgress?.(50, 'Re-encoding…')
   const blob = await canvasToBlob(canvas, mimeFor(ext), ext === 'jpg' ? 0.9 : undefined)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(file, 'stripped', ext), blob }]
 }
 // ---------------------------------------------------------------------------
-// Image Crop & Rotate (visual editor â€” crop rect in %, rotation in degrees)
+// Image Crop & Rotate (visual editor — crop rect in %, rotation in degrees)
 // ---------------------------------------------------------------------------
 export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const input = getFile(files, 'image')
@@ -361,7 +361,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const cropHeight = Math.max(0, numberParam(params, 'cropHeight', 100))
   const rotate = numberParam(params, 'rotate', 0)
 
-  onProgress?.(10, 'Loading imageâ€¦')
+  onProgress?.(10, 'Loading image…')
   const image = await loadImage(input.blob)
   const srcW = image.naturalWidth
   const srcH = image.naturalHeight
@@ -372,7 +372,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const rotH = swapped ? srcW : srcH
 
   // --- Step 1: draw rotated image onto a canvas ---
-  onProgress?.(40, 'Rotatingâ€¦')
+  onProgress?.(40, 'Rotating…')
   const rotCanvas = document.createElement('canvas')
   rotCanvas.width = rotW
   rotCanvas.height = rotH
@@ -387,7 +387,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   rotCtx.restore()
 
   // --- Step 2: crop from the rotated canvas ---
-  onProgress?.(70, 'Croppingâ€¦')
+  onProgress?.(70, 'Cropping…')
   const cx = Math.max(0, Math.round((cropX / 100) * rotW))
   const cy = Math.max(0, Math.round((cropY / 100) * rotH))
   const cw = Math.min(rotW - cx, Math.max(1, Math.round((cropWidth / 100) * rotW)))
@@ -402,7 +402,7 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   outCtx.fillRect(0, 0, cw, ch)
   outCtx.drawImage(rotCanvas, cx, cy, cw, ch, 0, 0, cw, ch)
 
-  onProgress?.(90, 'Encodingâ€¦')
+  onProgress?.(90, 'Encoding…')
   const ext = fileExtension(input.name) || 'png'
   const blob = await canvasToBlob(outCanvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
