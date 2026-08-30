@@ -2,7 +2,7 @@
 
 **A privacy-first image & PDF toolbox that runs entirely in your browser.**
 
-No uploads. No accounts. No tracking. OpenDocs Studio ships **17 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
+No uploads. No accounts. No tracking. OpenDocs Studio ships **21 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
 
 | | |
 |---|---|
@@ -25,32 +25,34 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **17 production-read
 
 | Tool | What it does | Key options |
 |---|---|---|
-| **Image Resize** | Scale to exact dimensions, or fit inside a box keeping aspect ratio | Width / height (0 = auto), fit mode (stretch / fit-inside), resampling algorithm (bicubic, Lanczos, bilinear, nearest, area — mapped to the closest canvas smoothing mode; `nearest` gives true pixel-art-friendly nearest-neighbor) |
-| **Image Crop** | Cut a rectangular region out of an image | Pixel-precise left / top offsets + crop width / height |
-| **Image Compressor** | Shrink file size by lowering quality and/or reformatting | Format (auto / JPG / PNG / WebP), quality 1–100 (PNG is compressed via color reduction) |
-| **Image Format Converter** | Clean re-encode between formats | JPG, PNG, WebP, GIF, BMP, AVIF or ICO output with quality control |
-| **Add Watermark / Overlay** | Brand an image with a graphic and/or text | 9 position anchors, overlay opacity, overlay scale (% of image width), text label, font size, hex color — the overlay image is optional, so text-only watermarks work too |
-| **EXIF Metadata Stripper** | Remove GPS location, camera and timestamp metadata | Re-encodes the image (metadata cannot survive re-encoding); keep the original format or convert to PNG / JPG / WebP |
-| **Batch Image Renamer** | Sanitize and rename many images in one pass | Prefix, suffix, sequential numbering with zero-padding → returns a **ZIP** |
-| **Custom Album Creator** | Lay multiple photos onto a printable grid canvas | Tile width / height, columns (1–12), spacing, cover / stretch tile fit, background color, output format |
-| **Image Flip / Mirror** | Mirror an image horizontally or vertically (or both) | Direction (horizontal / vertical / both), output format (keep / PNG / JPG / WebP) — transparency preserved |
-| **Base64 Converter** | Encode images to Base64 or decode Base64 back into a file — the mode is picked first and only the matching file slot is shown | Data-URI or raw Base64 output for HTML/CSS embedding; decoding strips data-URI prefixes / line breaks, accepts the URL-safe alphabet, and sniffs PNG / JPG / WebP / GIF / BMP / AVIF / ICO / SVG / PDF |
-| **Adjustments & Enhancement** | One-pass photo tune-up with a live preview that updates as you move the compact slider bars, plus a compare-with-original toggle | Slider controls for brightness, contrast, saturation, hue, color temperature, sharpen, blur, sepia, grayscale + output format (keep / PNG / JPG / WebP) |
-| **Background Eraser** | Remove photo backgrounds with a real AI matting model that runs 100% on your device — works fully offline | AI model (medium = best quality / small = fastest), new background (transparent / white / black / custom color), output format (PNG / WebP); AI files ship via `npm run fetch:models` |
+| **Image Format Converter** | Re-encode one or more images cleanly to JPG, PNG, WebP, GIF, BMP, AVIF or ICO — results download individually or as a ZIP. | JPG, PNG, WebP, GIF, BMP, AVIF or ICO output with quality control |
+| **Image Compressor** | Compress one or more images by quality percentage or target file size — results download individually or as a ZIP. | Format (auto / JPG / PNG / WebP), quality 1–100 (PNG is compressed via color reduction) |
+| **Background Eraser** | Erase photo backgrounds with a real AI matting model that runs 100% on your device — nothing is ever uploaded. | AI model (medium = best quality / small = fastest), new background (transparent / white / black / custom color), output format (PNG / WebP); AI files ship via `npm run fetch:models` |
+| **Custom Album Creator** | Design a photo album visually — pick a template (grid, polaroid, film strip and more), style it, and preview it live. | Tile width / height, columns (1–12), spacing, cover / stretch tile fit, background color, output format |
+| **Add Watermark / Overlay** | Overlay a graphic and/or text branding onto an image — pick any font and color for the text. | 9 position anchors, overlay opacity, overlay scale (% of image width), text label, font size, hex color — the overlay image is optional, so text-only watermarks work too |
+| **Adjustments & Enhancement** | One-pass photo tune-up — brightness, contrast, saturation, hue, color temperature, sharpening, blur, sepia and grayscale. | Slider controls for brightness, contrast, saturation, hue, color temperature, sharpen, blur, sepia, grayscale + output format (keep / PNG / JPG / WebP) |
+| **EXIF Metadata Stripper** | Remove EXIF / camera-location / timestamp metadata. Re-encodes the image (PNG output is lossless). | Output format (PNG, JPG, WebP, keep) |
+| **Image Crop** | Cut a rectangular region out of an image. | Pixel-precise left / top offsets + crop width / height |
+| **Image Resize** | Visually rescale an image, exact size or fit-inside box, with aspect-ratio lock and a live preview. | Width / height (0 = auto), fit mode (stretch / fit-inside), resampling algorithm (bicubic, Lanczos, bilinear, nearest, area — mapped to the closest canvas smoothing mode; `nearest` gives true pixel-art-friendly nearest-neighbor) |
+| **Batch Image Renamer** | Sanitize and rename many images at once — returns a ZIP of the renamed files. | Prefix, suffix, sequential numbering with zero-padding → returns a **ZIP** |
+| **Image Flip / Mirror** | Mirror one or more images horizontally or vertically (or both) — transparency is preserved and the output format is up to you. | Direction (horizontal / vertical / both), output format (keep / PNG / JPG / WebP) — transparency preserved |
+| **Base64 Converter** | Encode images into Base64 (data URI or raw) for HTML/CSS embedding, or decode a Base64 / data-URI text file back into its original file. | Data-URI or raw Base64 output for HTML/CSS embedding; decoding strips data-URI prefixes / line breaks, accepts the URL-safe alphabet, and sniffs PNG / JPG / WebP / GIF / BMP / AVIF / ICO / SVG / PDF |
+
+
 
 ### 📕 PDF Tools (9)
 
 | Tool | What it does | Key options |
-|---|---|---|
-| **PDF Merger** | Combine several PDFs into one document | Optional document-title metadata |
-| **PDF Splitter** | Extract page ranges into separate PDFs | Ranges like `1-3,5,7-9` (bounds-checked) → returns a **ZIP** |
-| **PDF Page Rotator** | Fix sideways scans | 90° / 180° / 270°, applied to all pages or a single page |
-| **Images to PDF** | Turn images into a PDF, one image per page | Accepts multiple images; each page is sized to its image |
-| **PDF Compressor** | Re-normalize a PDF with compressed object streams | One click — no settings needed |
-| **PDF to Images** | Render every page to an image | PNG or JPG, 50–300 DPI (default 150) → returns a **ZIP** |
-| **PDF Watermark** | Stamp a logo image and/or text onto every page — added as real PDF content, so the original text stays selectable | 9 position anchors, opacity, overlay scale (% of page width), text label, font, size and color; the overlay image is optional |
-| **Protect PDF** | Lock a PDF with a password and set what readers may do | AES-256 (or legacy RC4), user + optional owner password, permission presets (all / read-only / no printing) |
-| **Unlock PDF** | Remove a password while keeping text selectable | Enter the user or owner password; legacy AES-128 locks are unlocked by re-rendering pages |
+|------|-------------|------------|
+| **PDF Compressor** | Compress one or more PDFs by quality percentage or target file size — results download individually or as a ZIP. | Quality % (1–100) or target size (KB / MB) |
+| **Images to PDF** | Turn images into a PDF, one image per page. | Accepts multiple images; each page is sized to its image |
+| **PDF to Images** | Render every page to an image. | PNG or JPG, 50–300 DPI (default 150) → returns a **ZIP** |
+| **PDF Watermark** | Stamp a logo image and/or text onto every page — added as real PDF content, so the original text stays selectable. | 9 position anchors, opacity, overlay scale (% of page width), text label, font, size and color; the overlay image is optional |
+| **Protect PDF** | Lock a PDF with a password and set what readers may do. | AES-256 (or legacy RC4), user + optional owner password, permission presets (all / read-only / no printing) |
+| **Unlock PDF** | Remove a password while keeping text selectable. | Enter the user or owner password; legacy AES-128 locks are unlocked by re-rendering pages |
+| **PDF Splitter** | Extract page ranges into separate PDFs. | Ranges like `1-3,5,7-9` (bounds-checked) → returns a **ZIP** |
+| **PDF Merger** | Combine several PDF files into a single document. | Optional document-title metadata |
+| **PDF Page Rotator** | Fix sideways scans. | 90° / 180° / 270°, applied to all pages or a single page |
 
 ### 🔒 Privacy by architecture
 
@@ -106,7 +108,7 @@ For production: `npm run build` produces a fully static site in `dist/` — depl
 ```
 src/
 ├── tools/                      # ★ The tool engine
-│   ├── registry.ts             #   All 17 tool definitions (inputs + form fields)
+│   ├── registry.ts             #   All 21 tool definitions (inputs + form fields)
 │   ├── types.ts                #   Shared tool contracts (ToolDefinition, ToolFile...)
 │   ├── helpers.ts              #   File pickers, downloads, ZIP, param helpers
 │   ├── index.ts                #   runTool() dispatcher
@@ -156,5 +158,18 @@ Contributions welcome! Tool contributions are especially easy: one registry entr
 
 ---
 
-**21 tools · 0 uploads · 100% client-side** ✅
+## 📬 Contact
+
+<h3>Akash Pramanik</h3>
+
+<p>
+  <strong>For questions or support: </strong>
+<a href="https://instagram.com/akash.098p" target="_blank">
+  <img src="https://img.shields.io/badge/akash.098p-E4405F?style=flat&logo=instagram&logoColor=white"/>
+</a> 
+
+<a href="mailto:akashpramanik098@gmail.com">
+  <img src="https://img.shields.io/badge/akashpramanik422%40gmail.com-D14836?style=flat&logo=gmail&logoColor=white"/>
+</a>
+</p>
 
