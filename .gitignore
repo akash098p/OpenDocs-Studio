@@ -17,6 +17,9 @@ venv/
 /dist
 /build
 
+# Local AI model files for the Background Eraser tool (npm run fetch:models)
+/public/models/
+
 # Misc
 .DS_Store
 *.pem
