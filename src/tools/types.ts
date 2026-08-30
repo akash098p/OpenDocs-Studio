@@ -1,4 +1,4 @@
-﻿export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font' | 'password'
+﻿export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font' | 'password' | 'range'
 
 export interface ToolField {
   name: string
@@ -11,6 +11,8 @@ export interface ToolField {
   options?: string[]
   /** When set, this field is only visible if the named field value equals the given value. */
   visibleWhen?: { field: string; equals: string }
+  /** Render this field above the file inputs — used for mode switches that gate which inputs are shown. */
+  position?: 'top'
 }
 
 export interface ToolInput {
@@ -19,6 +21,8 @@ export interface ToolInput {
   accept: string
   multiple?: boolean
   optional?: boolean
+  /** When set, this input is only shown if the named field value equals the given value. */
+  visibleWhen?: { field: string; equals: string }
 }
 
 export interface ToolDefinition {
@@ -31,6 +35,8 @@ export interface ToolDefinition {
   fields: ToolField[]
   visualEditor?: boolean
   editor?: 'crop-rotate' | 'resize' | 'album'
+  /** Show a live preview panel that re-renders the first input as fields change. */
+  livePreview?: boolean
 }
 
 export interface VisualEditorHandle {
