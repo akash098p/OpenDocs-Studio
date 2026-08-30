@@ -6,6 +6,9 @@ import {
   imageConvert,
   addWatermark,
   imageStripExif,
+  imageFlip,
+  imageAdjust,
+  base64Convert,
 } from './imageProcessors'
 import { batchRename, imageAlbum } from './imageBatchProcessors'
 import {
@@ -40,6 +43,12 @@ export const runTool = async (
       return addWatermark(files, params, onProgress)
     case 'image-strip-exif':
       return imageStripExif(files, params, onProgress)
+    case 'image-flip':
+      return imageFlip(files, params, onProgress)
+    case 'image-adjust':
+      return imageAdjust(files, params, onProgress)
+    case 'base64-converter':
+      return base64Convert(files, params, onProgress)
     case 'batch-rename':
       return batchRename(files, params, onProgress)
     case 'image-album':
