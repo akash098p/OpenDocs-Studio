@@ -3,6 +3,7 @@ import {
   canvasToBlob,
   canvasToCompressedPng,
   fileExtension,
+  fileName,
   FONT_STACKS,
   getFile,
   getFiles,
@@ -445,4 +446,271 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const blob = await canvasToBlob(outCanvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(input, 'cropped', ext), blob }]
+}
+// ---------------------------------------------------------------------------
+// Image Flip / Mirror — mirrors via canvas transforms; keeps alpha intact
+// ---------------------------------------------------------------------------
+export const imageFlip = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const direction = stringParam(params, 'direction', 'horizontal')
+  const format = stringParam(params, 'format', 'keep')
+  const images = getFiles(files, 'image')
+  if (!images.length) throw new Error('Provide at least one image.')
+
+  const outputs: ToolOutput[] = []
+  for (let i = 0; i < images.length; i += 1) {
+    const file = images[i]
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Flipping ${i + 1}/${images.length}…`)
+    const image = await loadImage(file.blob)
+    const width = image.naturalWidth
+    const height = image.naturalHeight
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('Could not create canvas context.')
+
+    const srcExt = fileExtension(file.name) || 'png'
+    const ext = format === 'keep' ? srcExt : format
+    const isJpg = ext === 'jpg' || ext === 'jpeg'
+    if (isJpg) {
+      // JPG has no alpha channel — flatten onto white first; other formats keep transparency.
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, width, height)
+    }
+    ctx.save()
+    if (direction === 'horizontal' || direction === 'both') {
+      ctx.translate(width, 0)
+      ctx.scale(-1, 1)
+    }
+    if (direction === 'vertical' || direction === 'both') {
+      ctx.translate(0, height)
+      ctx.scale(1, -1)
+    }
+    ctx.drawImage(image, 0, 0, width, height)
+    ctx.restore()
+
+    const blob = await canvasToBlob(canvas, mimeFor(ext), isJpg ? 0.92 : undefined)
+    outputs.push({ name: outputName(file, 'flipped', ext), blob })
+  }
+
+  onProgress?.(100, 'Done.')
+  return outputs.length === 1 ? outputs : [{ name: 'flipped-images.zip', blob: await makeZip(outputs) }]
+}
+// ---------------------------------------------------------------------------
+// Adjustments & Enhancement
+//   Brightness / contrast / saturation / hue / blur / sepia / grayscale ride on
+//   the canvas filter pipeline; color temperature and sharpening run as
+//   per-pixel passes on top of the filtered result.
+// ---------------------------------------------------------------------------
+const clampRange = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value))
+
+// Cool ↔ warm tint: nudges red up and blue down (and vice versa); green untouched.
+const applyTemperature = (data: Uint8ClampedArray, temperature: number): void => {
+  const t = temperature / 100
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = data[i] * (1 + 0.3 * t)
+    data[i + 2] = data[i + 2] * (1 - 0.3 * t)
+  }
+}
+
+// 3x3 unsharp kernel: center weight 1+4a, orthogonal neighbors -a. Border pixels stay untouched.
+const applySharpen = (data: Uint8ClampedArray, width: number, height: number, amount: number): void => {
+  const source = new Uint8ClampedArray(data)
+  const center = 1 + 4 * amount
+  const rowBytes = width * 4
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const idx = y * rowBytes + x * 4
+      for (let c = 0; c < 3; c += 1) {
+        data[idx + c] =
+          center * source[idx + c] -
+          amount * (source[idx - 4 + c] + source[idx + 4 + c] + source[idx - rowBytes + c] + source[idx + rowBytes + c])
+      }
+    }
+  }
+}
+
+export interface AdjustRenderOptions {
+  /** Downscale so the longest edge fits this size (used by the live preview). */
+  maxWidth?: number
+  /** Pre-fill with white before drawing — JPG output has no alpha channel. */
+  flatten?: boolean
+}
+
+// Core adjustment pipeline shared by the tool export and the live preview:
+// canvas filter pass (brightness/contrast/saturation/hue/blur/sepia/grayscale)
+// followed by the temperature and sharpen per-pixel passes. The blur radius
+// scales with the render size so a downscaled preview looks like the export.
+// Returns a fresh canvas on every call, so repeated renders never compound.
+export const renderAdjustments = (
+  source: HTMLImageElement | HTMLCanvasElement,
+  params: ToolParams,
+  options: AdjustRenderOptions = {},
+): HTMLCanvasElement => {
+  const srcWidth = source instanceof HTMLImageElement ? source.naturalWidth : source.width
+  const srcHeight = source instanceof HTMLImageElement ? source.naturalHeight : source.height
+  const scale = options.maxWidth ? Math.min(1, options.maxWidth / Math.max(srcWidth, srcHeight)) : 1
+  const width = Math.max(1, Math.round(srcWidth * scale))
+  const height = Math.max(1, Math.round(srcHeight * scale))
+
+  const brightness = clampRange(numberParam(params, 'brightness', 0), -100, 100)
+  const contrast = clampRange(numberParam(params, 'contrast', 0), -100, 100)
+  const saturation = clampRange(numberParam(params, 'saturation', 0), -100, 100)
+  const temperature = clampRange(numberParam(params, 'temperature', 0), -100, 100)
+  const hue = clampRange(numberParam(params, 'hue', 0), -180, 180)
+  const sharpen = clampRange(numberParam(params, 'sharpen', 0), 0, 100)
+  const blur = clampRange(numberParam(params, 'blur', 0), 0, 50) * scale
+  const sepia = clampRange(numberParam(params, 'sepia', 0), 0, 100)
+  const grayscale = clampRange(numberParam(params, 'grayscale', 0), 0, 100)
+
+  const filters: string[] = []
+  if (brightness) filters.push(`brightness(${(100 + brightness) / 100})`)
+  if (contrast) filters.push(`contrast(${(100 + contrast) / 100})`)
+  if (saturation) filters.push(`saturate(${(100 + saturation) / 100})`)
+  if (hue) filters.push(`hue-rotate(${hue}deg)`)
+  if (blur) filters.push(`blur(${blur}px)`)
+  if (sepia) filters.push(`sepia(${sepia / 100})`)
+  if (grayscale) filters.push(`grayscale(${grayscale / 100})`)
+  const filter = filters.join(' ')
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Could not create canvas context.')
+  if (options.flatten) {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+  }
+  if (filter) ctx.filter = filter
+  ctx.drawImage(source, 0, 0, width, height)
+  ctx.filter = 'none'
+
+  if (temperature || sharpen) {
+    const imageData = ctx.getImageData(0, 0, width, height)
+    if (temperature) applyTemperature(imageData.data, temperature)
+    if (sharpen) applySharpen(imageData.data, width, height, sharpen / 100)
+    ctx.putImageData(imageData, 0, 0)
+  }
+  return canvas
+}
+
+export const imageAdjust = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const images = getFiles(files, 'image')
+  if (!images.length) throw new Error('Provide at least one image.')
+  const format = stringParam(params, 'format', 'keep')
+
+  const outputs: ToolOutput[] = []
+  for (let i = 0; i < images.length; i += 1) {
+    const file = images[i]
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Adjusting ${i + 1}/${images.length}…`)
+    const image = await loadImage(file.blob)
+    const srcExt = fileExtension(file.name) || 'png'
+    const ext = format === 'keep' ? srcExt : format
+    const isJpg = ext === 'jpg' || ext === 'jpeg'
+    // renderAdjustments pre-fills white for JPG so the output has no dark transparent corners.
+    const canvas = renderAdjustments(image, params, { flatten: isJpg })
+
+    const blob = await canvasToBlob(canvas, mimeFor(ext), isJpg ? 0.92 : undefined)
+    outputs.push({ name: outputName(file, 'adjusted', ext), blob })
+  }
+
+  onProgress?.(100, 'Done.')
+  return outputs.length === 1 ? outputs : [{ name: 'adjusted-images.zip', blob: await makeZip(outputs) }]
+}
+// ---------------------------------------------------------------------------
+// Base64 Converter
+//   encode: image file(s) → .txt holding a data URI (default) or raw Base64
+//   decode: Base64 / data-URI text file → the original binary file
+// ---------------------------------------------------------------------------
+const readAsDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result))
+    reader.onerror = () => reject(new Error('Could not read the file.'))
+    reader.readAsDataURL(blob)
+  })
+
+// Magic-byte sniffing so decoded files get the right name and MIME type.
+const sniffFileExtension = (bytes: Uint8Array): string => {
+  const startsWith = (offset: number, text: string): boolean => {
+    for (let i = 0; i < text.length; i += 1) {
+      if (bytes[offset + i] !== text.charCodeAt(i)) return false
+    }
+    return true
+  }
+  if (startsWith(0, '\x89PNG')) return 'png'
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpg'
+  if (startsWith(0, 'GIF8')) return 'gif'
+  if (bytes[0] === 0x42 && bytes[1] === 0x4d) return 'bmp'
+  if (bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) return 'ico'
+  if (startsWith(0, 'RIFF') && startsWith(8, 'WEBP')) return 'webp'
+  if (startsWith(4, 'ftyp') && (startsWith(8, 'avif') || startsWith(8, 'avis'))) return 'avif'
+  if (startsWith(0, '<?xml') || startsWith(0, '<svg')) return 'svg'
+  if (startsWith(0, '%PDF')) return 'pdf'
+  return ''
+}
+
+export const base64Convert = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const mode = stringParam(params, 'mode', 'encode')
+
+  if (mode === 'decode') {
+    const textFiles = getFiles(files, 'text')
+    if (!textFiles.length) throw new Error('Provide a text file containing Base64 data.')
+    onProgress?.(15, 'Reading Base64…')
+
+    let raw = (await textFiles[0].blob.text()).trim()
+    let declaredMime = ''
+    const dataUri = raw.match(/^data:([^;,]*)(;base64)?,/i)
+    if (dataUri) {
+      declaredMime = dataUri[1].toLowerCase()
+      raw = raw.slice(dataUri[0].length)
+    }
+    // Tolerate line breaks and the URL-safe alphabet before validating.
+    const b64 = raw.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/')
+    if (!b64) throw new Error('The file does not contain any Base64 data.')
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Error('The file does not look like valid Base64.')
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4)
+
+    let binary: string
+    try {
+      binary = atob(padded)
+    } catch {
+      throw new Error('The file does not look like valid Base64.')
+    }
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i)
+
+    const mimeToExt: Record<string, string> = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/webp': 'webp',
+      'image/gif': 'gif',
+      'image/bmp': 'bmp',
+      'image/avif': 'avif',
+      'image/x-icon': 'ico',
+      'image/svg+xml': 'svg',
+      'application/pdf': 'pdf',
+    }
+    const ext = sniffFileExtension(bytes) || mimeToExt[declaredMime] || 'bin'
+    const blob = new Blob([bytes], { type: ext === 'bin' ? 'application/octet-stream' : mimeFor(ext) })
+    onProgress?.(100, 'Done.')
+    return [{ name: `decoded-${sanitizeFilename(fileName(textFiles[0].name))}.${ext}`, blob }]
+  }
+
+  const images = getFiles(files, 'image')
+  if (!images.length) throw new Error('Provide at least one image to encode.')
+  const asRawBase64 = stringParam(params, 'output', 'data-uri') === 'raw base64'
+
+  const outputs: ToolOutput[] = []
+  for (let i = 0; i < images.length; i += 1) {
+    const file = images[i]
+    onProgress?.(Math.round((i / images.length) * 90) + 5, `Encoding ${i + 1}/${images.length}…`)
+    const dataUri = await readAsDataUrl(file.blob)
+    const text = asRawBase64 ? dataUri.slice(dataUri.indexOf(',') + 1) : dataUri
+    outputs.push({ name: outputName(file, 'base64', 'txt'), blob: new Blob([text], { type: 'text/plain' }) })
+  }
+
+  onProgress?.(100, 'Done.')
+  return outputs.length === 1 ? outputs : [{ name: 'base64-texts.zip', blob: await makeZip(outputs) }]
 }
