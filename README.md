@@ -6,7 +6,7 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **17 production-read
 
 | | |
 |---|---|
-| 🧰 **20 tools** | 11 image · 9 PDF |
+| 🧰 **21 tools** | 12 image · 9 PDF |
 | 🔒 **100% client-side** | Files are processed in-memory, never transmitted |
 | 🆓 **Free for everyone** | No sign-in, no limits, no data collection |
 | ⚡ **Instant** | No round-trip to a server — results download immediately |
@@ -21,7 +21,7 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **17 production-read
 2. Pick a tool and drop in your file(s) — the input form is generated automatically from the tool's definition
 3. Click **Run Tool** — the result downloads instantly (multi-file results are bundled into a single ZIP)
 
-### 🖼️ Image Tools (11)
+### 🖼️ Image Tools (12)
 
 | Tool | What it does | Key options |
 |---|---|---|
@@ -36,6 +36,7 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **17 production-read
 | **Image Flip / Mirror** | Mirror an image horizontally or vertically (or both) | Direction (horizontal / vertical / both), output format (keep / PNG / JPG / WebP) — transparency preserved |
 | **Base64 Converter** | Encode images to Base64 or decode Base64 back into a file — the mode is picked first and only the matching file slot is shown | Data-URI or raw Base64 output for HTML/CSS embedding; decoding strips data-URI prefixes / line breaks, accepts the URL-safe alphabet, and sniffs PNG / JPG / WebP / GIF / BMP / AVIF / ICO / SVG / PDF |
 | **Adjustments & Enhancement** | One-pass photo tune-up with a live preview that updates as you move the compact slider bars, plus a compare-with-original toggle | Slider controls for brightness, contrast, saturation, hue, color temperature, sharpen, blur, sepia, grayscale + output format (keep / PNG / JPG / WebP) |
+| **Background Eraser** | Remove photo backgrounds with a real AI matting model that runs 100% on your device — works fully offline | AI model (medium = best quality / small = fastest), new background (transparent / white / black / custom color), output format (PNG / WebP); AI files ship via `npm run fetch:models` |
 
 ### 📕 PDF Tools (9)
 
@@ -98,6 +99,7 @@ For production: `npm run build` produces a fully static site in `dist/` — depl
 | PDF security | @pdfsmaller/pdf-encrypt & pdf-decrypt (AES-256 / RC4 protect + unlock via Web Crypto) |
 | Bundling | JSZip (multi-file tool outputs) |
 | Image processing | Canvas API |
+| AI background removal | @imgly/background-removal (ISNet matting via ONNX Runtime Web, self-hosted models) |
 
 ## 📁 Project Structure
 
@@ -133,6 +135,7 @@ The same shell also includes a lightweight document workspace: a file manager wi
 | `npm run preview` | Serve the production build locally |
 | `npm run type-check` | TypeScript check only |
 | `npm run lint` | ESLint (zero-warning policy) |
+| `npm run fetch:models` | One-time download of the Background Eraser AI models into `public/models/` (full offline support) |
 
 ## 🐛 Troubleshooting
 
@@ -153,5 +156,5 @@ Contributions welcome! Tool contributions are especially easy: one registry entr
 
 ---
 
-**20 tools · 0 uploads · 100% client-side** ✅
+**21 tools · 0 uploads · 100% client-side** ✅
 
