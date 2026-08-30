@@ -32,7 +32,7 @@ export const toolDefinitions: ToolDefinition[] = [
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
       { name: 'mode', label: 'Compression mode', type: 'select', options: ['percentage', 'targetSize'], default: 'percentage' },
-      { name: 'quality', label: 'Quality % (1-100)', type: 'number', default: 75, min: 1, max: 100, step: 1, visibleWhen: { field: 'mode', equals: 'percentage' } },
+      { name: 'quality', label: 'Quality % (JPG/WebP/PNG)', type: 'number', default: 75, min: 1, max: 100, step: 1, visibleWhen: { field: 'mode', equals: 'percentage' } },
       { name: 'targetSize', label: 'Target size', type: 'number', default: 500, min: 1, step: 1, visibleWhen: { field: 'mode', equals: 'targetSize' } },
       { name: 'targetUnit', label: 'Target unit', type: 'select', options: ['KB', 'MB'], default: 'KB', visibleWhen: { field: 'mode', equals: 'targetSize' } },
       { name: 'format', label: 'Output format', type: 'select', options: ['auto', 'jpg', 'png', 'webp'], default: 'auto' },
@@ -43,11 +43,11 @@ export const toolDefinitions: ToolDefinition[] = [
     name: 'Image Format Converter',
     group: 'Image',
     icon: '/tools-icons/image format convert.png',
-    description: 'Re-encode one or more images cleanly to JPG, PNG or WebP — results download individually or as a ZIP.',
+    description: 'Re-encode one or more images cleanly to JPG, PNG, WebP, GIF, BMP, AVIF or ICO — results download individually or as a ZIP.',
     inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
-      { name: 'format', label: 'Output format', type: 'select', options: ['jpg', 'png', 'webp'], default: 'png' },
-      { name: 'quality', label: 'Quality (lossy formats)', type: 'number', default: 90, min: 1, max: 100, step: 1 },
+      { name: 'format', label: 'Output format', type: 'select', options: ['jpg', 'png', 'webp', 'gif', 'bmp', 'avif', 'ico'], default: 'png' },
+      { name: 'quality', label: 'Quality (JPG / WebP / AVIF only)', type: 'number', default: 90, min: 1, max: 100, step: 1 },
     ],
   },
   {
