@@ -15,6 +15,9 @@ import {
   imagesToPdf,
   pdfCompress,
   pdfToImages,
+  pdfWatermark,
+  pdfProtect,
+  pdfUnlock,
 } from './pdfProcessors'
 
 export type Progress = (percent: number, message: string) => void
@@ -53,6 +56,12 @@ export const runTool = async (
       return pdfCompress(files, params, onProgress)
     case 'pdf-to-images':
       return pdfToImages(files, params, onProgress)
+    case 'pdf-watermark':
+      return pdfWatermark(files, params, onProgress)
+    case 'pdf-protect':
+      return pdfProtect(files, params, onProgress)
+    case 'pdf-unlock':
+      return pdfUnlock(files, params, onProgress)
     default:
       throw new Error(`Unknown tool: ${toolId}`)
   }
