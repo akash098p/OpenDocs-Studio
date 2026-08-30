@@ -1,5 +1,16 @@
 # OpenDocs Studio
 
+<p align="center">
+  <img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Zustand-FFA500?style=for-the-badge&logo=zustand&logoColor=black" alt="Zustand" />
+  <img src="https://img.shields.io/badge/pdf%20lib-000000?style=for-the-badge&logo=adobe&logoColor=white" alt="pdf-lib" />
+  <img src="https://img.shields.io/badge/pdf.js-FF6600?style=for-the-badge&logo=mozillafoundation&logoColor=white" alt="pdf.js" />
+  <img src="https://img.shields.io/badge/Canvas_API-E34F26?style=for-the-badge&logo=html5&logoColor=white" alt="Canvas API" />
+</p>
+
 **A privacy-first image & PDF toolbox that runs entirely in your browser.**
 
 No uploads. No accounts. No tracking. OpenDocs Studio ships **21 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
