@@ -19,6 +19,11 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  optimizeDeps: {
+    // onnxruntime-web ships its own ESM entries and loads wasm at runtime —
+    // pre-bundling it breaks the Background Eraser in dev mode.
+    exclude: ['onnxruntime-web'],
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
