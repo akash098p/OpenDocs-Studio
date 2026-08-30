@@ -16,11 +16,11 @@ const MAX_SIZE = 8192
 const PREVIEW_SIZE = 180
 
 const ALGORITHMS: Array<{ value: string; label: string }> = [
-  { value: 'bicubic', label: 'Bicubic â€” smooth' },
-  { value: 'lanczos', label: 'Lanczos â€” sharp' },
-  { value: 'bilinear', label: 'Bilinear â€” fast' },
-  { value: 'nearest', label: 'Nearest â€” pixel art' },
-  { value: 'area', label: 'Area â€” downscale' },
+  { value: 'bicubic', label: 'Bicubic — smooth' },
+  { value: 'lanczos', label: 'Lanczos — sharp' },
+  { value: 'bilinear', label: 'Bilinear — fast' },
+  { value: 'nearest', label: 'Nearest — pixel art' },
+  { value: 'area', label: 'Area — downscale' },
 ]
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -167,7 +167,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
         : { width, height }
       : { width: 0, height: 0 }
 
-  // Live preview canvas â€” shows the scaled result, including stretch distortion
+  // Live preview canvas — shows the scaled result, including stretch distortion
   useEffect(() => {
     const canvas = previewCanvasRef.current
     if (!canvas || !image || output.width <= 0 || output.height <= 0) return
@@ -206,7 +206,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <div className="space-y-2">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Original â€” drag the corner handle to rescale (output overlay shown in dashed blue)
+            Original — drag the corner handle to rescale (output overlay shown in dashed blue)
           </p>
           <div
             ref={frameRef}
@@ -228,7 +228,7 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
                 onPointerDown={startDrag}
               >
                 <span className="absolute -bottom-6 left-0 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {width} Ã— {height}
+                  {width} × {height}
                 </span>
                 <span className="absolute right-0 bottom-0 h-4 w-4 rounded-tl bg-blue-600 shadow" />
               </div>
@@ -247,14 +247,14 @@ export const ResizeEditor = forwardRef<ResizeEditorHandle, ResizeEditorProps>(({
               <div className="flex justify-between">
                 <span>Box</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-100">
-                  {width} Ã— {height} px
+                  {width} × {height} px
                 </span>
               </div>
             )}
             <div className={`flex justify-between${fit === 'fit-inside' ? ' mt-1' : ''}`}>
               <span>Output</span>
               <span className="font-semibold text-slate-800 dark:text-slate-100">
-                {output.width} Ã— {output.height} px
+                {output.width} × {output.height} px
               </span>
             </div>
             <div className="mt-1 flex justify-between">
