@@ -87,6 +87,19 @@ const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (val
       </div>
     )
   }
+  if (field.type === 'password') {
+    return (
+      <input
+        name={field.name}
+        type="password"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={sharedClass}
+        placeholder="••••••••"
+        autoComplete="new-password"
+      />
+    )
+  }
   return (
     <input name={field.name} type="text" value={value} onChange={(event) => onChange(event.target.value)} className={sharedClass} />
   )
