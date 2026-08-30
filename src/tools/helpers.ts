@@ -50,6 +50,7 @@ const mimeMap: Record<string, string> = {
   ico: 'image/x-icon',
   pdf: 'application/pdf',
   zip: 'application/zip',
+  svg: 'image/svg+xml',
 }
 
 export const mimeFor = (ext: string): string => mimeMap[ext.toLowerCase()] || 'application/octet-stream'
