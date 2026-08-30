@@ -29,18 +29,17 @@ export const toolDefinitions: ToolDefinition[] = [
     ],
   },
   {
-    id: 'base64-converter',
-    name: 'Base64 Converter',
+    id: 'image-background-erase',
+    name: 'Background Eraser',
     group: 'Image',
-    icon: '/tools-icons/base64 converter.png',
-    description: 'Encode images into Base64 (data URI or raw) for HTML/CSS embedding, or decode a Base64 / data-URI text file back into its original file.',
-    inputs: [
-      { name: 'image', label: 'Image files', accept: 'image/*', multiple: true, optional: true, visibleWhen: { field: 'mode', equals: 'encode' } },
-      { name: 'text', label: 'Base64 text file', accept: '.txt,.b64,.base64,text/plain', optional: true, visibleWhen: { field: 'mode', equals: 'decode' } },
-    ],
+    icon: '/tools-icons/bg remover.png',
+    description: 'Erase photo backgrounds with a real AI matting model that runs 100% on your device — nothing is ever uploaded.',
+    inputs: [{ name: 'image', label: 'Image files', accept: 'image/*', multiple: true }],
     fields: [
-      { name: 'mode', label: 'Mode', type: 'select', options: ['encode', 'decode'], default: 'encode', position: 'top' },
-      { name: 'output', label: 'Encoded output', type: 'select', options: ['data-uri', 'raw base64'], default: 'data-uri', visibleWhen: { field: 'mode', equals: 'encode' } },
+      { name: 'model', label: 'AI model', type: 'select', options: ['medium (best quality)', 'small (fastest)'], default: 'medium (best quality)' },
+      { name: 'background', label: 'New background', type: 'select', options: ['transparent', 'white', 'black', 'custom color'], default: 'transparent' },
+      { name: 'backgroundColor', label: 'Custom color', type: 'color', default: '#FFFFFF', visibleWhen: { field: 'background', equals: 'custom color' } },
+      { name: 'outputFormat', label: 'Output format', type: 'select', options: ['png', 'webp'], default: 'png' },
     ],
   },
   {
@@ -154,6 +153,21 @@ export const toolDefinitions: ToolDefinition[] = [
       { name: 'digits', label: 'Sequence digits', type: 'number', default: 2, min: 1, max: 6, step: 1 },
       { name: 'format', label: 'Format (keep = no re-encode)', type: 'select', options: ['keep', 'jpg', 'png', 'webp'], default: 'keep' },
       { name: 'quality', label: 'Quality when re-encoding', type: 'number', default: 90, min: 1, max: 100, step: 1 },
+    ],
+  },
+    {
+    id: 'base64-converter',
+    name: 'Base64 Converter',
+    group: 'Image',
+    icon: '/tools-icons/base64 converter.png',
+    description: 'Encode images into Base64 (data URI or raw) for HTML/CSS embedding, or decode a Base64 / data-URI text file back into its original file.',
+    inputs: [
+      { name: 'image', label: 'Image files', accept: 'image/*', multiple: true, optional: true, visibleWhen: { field: 'mode', equals: 'encode' } },
+      { name: 'text', label: 'Base64 text file', accept: '.txt,.b64,.base64,text/plain', optional: true, visibleWhen: { field: 'mode', equals: 'decode' } },
+    ],
+    fields: [
+      { name: 'mode', label: 'Mode', type: 'select', options: ['encode', 'decode'], default: 'encode', position: 'top' },
+      { name: 'output', label: 'Encoded output', type: 'select', options: ['data-uri', 'raw base64'], default: 'data-uri', visibleWhen: { field: 'mode', equals: 'encode' } },
     ],
   },
   {
