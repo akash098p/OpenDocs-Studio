@@ -812,3 +812,274 @@ export const pdfUnlock = async (files: ToolFile[], params: ToolParams, onProgres
     throw new Error(`Could not unlock the PDF: ${message || 'unknown error'}`)
   }
 }
+
+// ---------------------------------------------------------------------------
+// PDF Page Deleter
+// ---------------------------------------------------------------------------
+export const pdfDeletePages = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const pagesToDelete = stringParam(params, 'pages', '')
+
+  onProgress?.(10, 'Loading PDF...')
+  const src = await loadPdf(file.blob)
+  const total = src.getPageCount()
+  const base = sanitizeFilename(fileName(file.name)) || 'document'
+
+  const deleteSet = new Set<number>()
+  for (const part of pagesToDelete.split(',')) {
+    const p = part.trim()
+    if (!p) continue
+    if (p.includes('-')) {
+      const [a, b] = p.split('-').map(Number)
+      for (let i = a; i <= b; i++) {
+        if (i >= 1 && i <= total) deleteSet.add(i)
+      }
+    } else {
+      const n = Number(p)
+      if (n >= 1 && n <= total) deleteSet.add(n)
+    }
+  }
+
+  if (deleteSet.size === 0) {
+    throw new Error('No valid pages to delete. Use 1-based page numbers (e.g. "1,3,5-7").')
+  }
+  if (deleteSet.size >= total) {
+    throw new Error('Cannot delete all pages. Keep at least one page.')
+  }
+
+  onProgress?.(30, `Removing ${deleteSet.size} page(s)...`)
+  const doc = await PDFDocument.create()
+  const indicesToKeep = Array.from({ length: total }, (_, i) => i + 1).filter((p) => !deleteSet.has(p))
+  const indices0Based = indicesToKeep.map((p) => p - 1)
+  const copied = await doc.copyPages(src, indices0Based)
+  copied.forEach((page) => doc.addPage(page))
+
+  onProgress?.(90, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: `${base}-edited.pdf`, blob }]
+}
+
+// ---------------------------------------------------------------------------
+// PDF Page Reorder
+// ---------------------------------------------------------------------------
+export const pdfReorderPages = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const newOrder = stringParam(params, 'order', '')
+
+  onProgress?.(10, 'Loading PDF...')
+  const src = await loadPdf(file.blob)
+  const total = src.getPageCount()
+  const base = sanitizeFilename(fileName(file.name)) || 'reordered'
+
+  if (!newOrder.trim()) {
+    throw new Error('Enter a page order (e.g. "3,1,2,4" for 4 pages).')
+  }
+
+  const orderParts = newOrder.split(',').map((s) => Number(s.trim()))
+  if (orderParts.some((n) => Number.isNaN(n) || n < 1 || n > total)) {
+    throw new Error(`Invalid order. Use 1-based page numbers separated by commas (max ${total}).`)
+  }
+  if (new Set(orderParts).size !== total) {
+    throw new Error(`Order must include all ${total} pages exactly once.`)
+  }
+
+  onProgress?.(30, 'Reordering pages...')
+  const doc = await PDFDocument.create()
+  const indices0Based = orderParts.map((p) => p - 1)
+  const copied = await doc.copyPages(src, indices0Based)
+  copied.forEach((page) => doc.addPage(page))
+
+  onProgress?.(90, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: `${base}.pdf`, blob }]
+}
+
+// ---------------------------------------------------------------------------
+// PDF Extract Text
+// ---------------------------------------------------------------------------
+export const pdfExtractText = async (files: ToolFile[], _params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const base = sanitizeFilename(fileName(file.name)) || 'extracted'
+
+  onProgress?.(10, 'Loading PDF...')
+  const bytes = new Uint8Array(await file.blob.arrayBuffer())
+
+  const pdfjsLib = await import('pdfjs-dist')
+  const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
+  pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default as string
+
+  onProgress?.(20, 'Parsing PDF...')
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise
+  const total = pdf.numPages
+  let fullText = ''
+
+  for (let i = 1; i <= total; i++) {
+    onProgress?.(Math.round((i / total) * 70) + 20, `Extracting text from page ${i}/${total}...`)
+    const page = await pdf.getPage(i)
+    const textContent = await page.getTextContent()
+    const pageText = textContent.items
+      .map((item: unknown) => ((item as { str?: string }).str || ''))
+      .join(' ')
+    fullText += `--- Page ${i} ---\n${pageText}\n\n`
+  }
+
+  onProgress?.(95, 'Saving...')
+  const blob = new Blob([fullText], { type: 'text/plain;charset=utf-8' })
+  onProgress?.(100, 'Done.')
+  return [{ name: `${base}-text.txt`, blob }]
+}
+
+// ---------------------------------------------------------------------------
+// PDF Add Page Numbers
+// ---------------------------------------------------------------------------
+export const pdfAddPageNumbers = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const file = getFile(files, 'pdf')
+  const position = stringParam(params, 'position', 'bottom-center')
+  const startFrom = numberParam(params, 'startFrom', 1)
+  const fontSizeVal = numberParam(params, 'fontSize', 12)
+  const color = stringParam(params, 'color', '#000000')
+
+  onProgress?.(10, 'Loading PDF...')
+  const doc = await loadPdf(file.blob)
+  const total = doc.getPageCount()
+  const base = sanitizeFilename(fileName(file.name)) || 'numbered'
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+
+  const r = parseInt(color.slice(1, 3), 16) / 255
+  const g = parseInt(color.slice(3, 5), 16) / 255
+  const b = parseInt(color.slice(5, 7), 16) / 255
+
+  for (let i = 0; i < total; i++) {
+    onProgress?.(Math.round((i / total) * 80) + 10, `Adding number to page ${i + 1}/${total}...`)
+    const page = doc.getPage(i)
+    const { width, height } = page.getSize()
+    const pageNum = (startFrom + i).toString()
+    const textWidth = font.widthOfTextAtSize(pageNum, fontSizeVal)
+    let x: number
+    let y: number
+    const margin = 40
+    if (position.includes('left')) x = margin
+    else if (position.includes('right')) x = width - textWidth - margin
+    else x = (width - textWidth) / 2
+    if (position.includes('top')) y = height - margin
+    else y = margin
+    page.drawText(pageNum, { x, y, size: fontSizeVal, font, color: rgb(r, g, b) })
+  }
+
+    onProgress?.(95, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: `${base}-numbered.pdf`, blob }]
+}
+
+// ---------------------------------------------------------------------------
+// PDF Add Image to Pages (stamp/overlay)
+// ---------------------------------------------------------------------------
+export const pdfAddImageToPages = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const pdfFile = getFile(files, 'pdf')
+  const imageFile = getFile(files, 'image')
+  const scaleVal = numberParam(params, 'scale', 30) / 100
+  const opacityVal = numberParam(params, 'opacity', 50) / 100
+  const position = stringParam(params, 'position', 'center')
+
+  onProgress?.(10, 'Loading files...')
+  const doc = await loadPdf(pdfFile.blob)
+  const total = doc.getPageCount()
+  const base = sanitizeFilename(fileName(pdfFile.name)) || 'watermarked'
+
+  onProgress?.(20, 'Embedding image...')
+  const imageBytes = new Uint8Array(await imageFile.blob.arrayBuffer())
+  let image: PDFImage
+  if (imageFile.name.toLowerCase().endsWith('.png')) {
+    image = await doc.embedPng(imageBytes)
+  } else {
+    image = await doc.embedJpg(imageBytes)
+  }
+
+  const imgWidth = image.width * scaleVal
+  const imgHeight = image.height * scaleVal
+
+  for (let i = 0; i < total; i++) {
+    onProgress?.(Math.round((i / total) * 70) + 20, `Adding image to page ${i + 1}/${total}...`)
+    const page = doc.getPage(i)
+    const { width, height } = page.getSize()
+    let x: number
+    let y: number
+    if (position === 'top-left') { x = 20; y = height - imgHeight - 20 }
+    else if (position === 'top-right') { x = width - imgWidth - 20; y = height - imgHeight - 20 }
+    else if (position === 'bottom-left') { x = 20; y = 20 }
+    else if (position === 'bottom-right') { x = width - imgWidth - 20; y = 20 }
+    else { x = (width - imgWidth) / 2; y = (height - imgHeight) / 2 }
+    page.drawImage(image, { x, y, width: imgWidth, height: imgHeight, opacity: opacityVal })
+  }
+
+  onProgress?.(95, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: `${base}.pdf`, blob }]
+}
+
+// ---------------------------------------------------------------------------
+// PDF Create Blank with Content
+// ---------------------------------------------------------------------------
+export const pdfCreateBlank = async (_files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
+  const title = stringParam(params, 'title', 'New Document')
+  const textContent = stringParam(params, 'content', '')
+  const pageSize = stringParam(params, 'pageSize', 'a4')
+  const fontSizeVal = numberParam(params, 'fontSize', 12)
+
+  onProgress?.(10, 'Creating PDF...')
+  const doc = await PDFDocument.create()
+  doc.setTitle(title)
+
+  let pageWidth = 595.28
+  let pageHeight = 841.89
+  if (pageSize === 'letter') { pageWidth = 612; pageHeight = 792 }
+  else if (pageSize === 'legal') { pageWidth = 612; pageHeight = 1008 }
+
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  const margin = 50
+  const maxWidth = pageWidth - margin * 2
+  const lineHeight = fontSizeVal * 1.5
+
+  const paragraphs = textContent.split('\n')
+  let page = doc.addPage([pageWidth, pageHeight])
+  let y = pageHeight - margin
+
+  for (const paragraph of paragraphs) {
+    const lines = wrapText(paragraph, font, fontSizeVal, maxWidth)
+    for (const line of lines) {
+      if (y < margin + lineHeight) {
+        page = doc.addPage([pageWidth, pageHeight])
+        y = pageHeight - margin
+      }
+      page.drawText(line, { x: margin, y, size: fontSizeVal, font, color: rgb(0, 0, 0) })
+      y -= lineHeight
+    }
+    y -= lineHeight * 0.5
+  }
+
+  onProgress?.(90, 'Saving...')
+  const blob = await savePdf(doc)
+  onProgress?.(100, 'Done.')
+  return [{ name: `${sanitizeFilename(title)}.pdf`, blob }]
+}
+
+function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let currentLine = ''
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word
+    if (font.widthOfTextAtSize(testLine, fontSize) > maxWidth && currentLine) {
+      lines.push(currentLine)
+      currentLine = word
+    } else {
+      currentLine = testLine
+    }
+  }
+  if (currentLine) lines.push(currentLine)
+  return lines
+}
