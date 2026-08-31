@@ -114,7 +114,7 @@ export const OutputPreview: React.FC<OutputPreviewProps> = ({ outputs, onClear }
         {outputs.map((output, index) => (
           <div
             key={`${output.name}-${index}`}
-            className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"
+            className="rounded-lg border border-slate-200 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm p-4 dark:border-slate-700"
           >
             <div className="mb-3 flex justify-center overflow-hidden">
               {renderPreview(output)}
