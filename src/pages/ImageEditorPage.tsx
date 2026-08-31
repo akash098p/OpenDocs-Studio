@@ -133,7 +133,7 @@ export const ImageEditorPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_1fr]">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm p-4 dark:border-slate-700">
             <p className="text-sm font-semibold mb-3">Tools</p>
 
             <div className="space-y-4">
@@ -166,7 +166,7 @@ export const ImageEditorPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 p-4 flex justify-center">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm dark:border-slate-700 p-4 flex justify-center">
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}

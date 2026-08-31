@@ -40,7 +40,7 @@ export const DocumentViewerPage: React.FC = () => {
       )
     } else if (document.type === 'pdf') {
       setPreview(
-        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-12 dark:border-slate-600 dark:bg-slate-900">
+        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-orange-200 bg-white/50 dark:border-slate-600 dark:bg-slate-900/50 backdrop-blur-sm p-12">
           <div className="text-center">
             <p className="text-lg font-semibold">PDF Preview</p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{document.name}</p>

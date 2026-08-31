@@ -384,10 +384,10 @@ export const PDFEditorPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <h1 className="text-2xl font-bold cursor-pointer hover:text-primary-600 transition-colors" onClick={() => setIsRenaming(true)} title="Click to rename">
+                <h1 className="text-2xl font-bold cursor-pointer hover:text-orange-600 transition-colors dark:hover:text-primary-600" onClick={() => setIsRenaming(true)} title="Click to rename">
                   {document.name}
                 </h1>
-                <button onClick={() => setIsRenaming(true)} className="text-slate-400 hover:text-primary-600" title="Rename">
+                <button onClick={() => setIsRenaming(true)} className="text-slate-400 hover:text-orange-600 dark:hover:text-primary-600" title="Rename">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
@@ -406,7 +406,7 @@ export const PDFEditorPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm p-4 dark:border-slate-700 space-y-4 max-h-[70vh] overflow-y-auto">
             <div>
               <p className="text-sm font-semibold mb-2">Drawing Tools</p>
               <div className="grid grid-cols-3 gap-1">
@@ -421,7 +421,7 @@ export const PDFEditorPage: React.FC = () => {
                   <button
                     key={t.id}
                     onClick={() => { setTool(t.id as typeof tool) }}
-                    className={`flex flex-col items-center gap-1 rounded p-2 text-xs transition-colors ${tool === t.id ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    className={`flex flex-col items-center gap-1 rounded p-2 text-xs transition-colors ${tool === t.id ? 'bg-orange-100 text-orange-700 dark:bg-primary-900 dark:text-primary-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                     title={t.label}
                   >
                     <span className="text-lg">{t.icon}</span>
@@ -439,7 +439,7 @@ export const PDFEditorPage: React.FC = () => {
                     <button
                       key={s}
                       onClick={() => setShapeType(s)}
-                      className={`flex-1 rounded px-2 py-1 text-xs ${shapeType === s ? 'bg-primary-600 text-white' : 'bg-slate-100 dark:bg-slate-800'}`}
+                      className={`flex-1 rounded px-2 py-1 text-xs ${shapeType === s ? 'bg-orange-600 text-white dark:bg-primary-600' : 'bg-slate-100 dark:bg-slate-800'}`}
                     >
                       {s}
                     </button>
@@ -501,7 +501,7 @@ export const PDFEditorPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950 p-4 flex justify-center overflow-auto">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm dark:border-slate-700 p-4 flex justify-center overflow-auto">
             <canvas
               ref={canvasRef}
               onMouseDown={startDrawing}
