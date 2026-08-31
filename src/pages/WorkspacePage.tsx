@@ -8,7 +8,7 @@ export const WorkspacePage: React.FC = () => {
   return (
     <Layout title="Workspace">
       <div className="space-y-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-lg border border-orange-200 bg-white/70 backdrop-blur-sm p-6 dark:border-slate-800 dark:bg-slate-900/70">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <Badge variant="success">All features unlocked and free</Badge>
