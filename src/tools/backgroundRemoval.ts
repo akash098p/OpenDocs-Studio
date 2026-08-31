@@ -3,9 +3,9 @@ import { canvasToBlob, getFiles, loadImage, makeZip, mimeFor, stringParam } from
 import { outputName, Progress } from './imageProcessors'
 
 // AI Background Eraser — runs the @imgly/background-removal ISNet matting model
-// fully on-device via ONNX Runtime Web. All runtime resources (wasm builds +
-// models) are self-hosted from /models/background-removal/ — fetch them with
-// `npm run fetch:models` — so the tool works offline and nothing is uploaded.
+// fully on-device via ONNX Runtime Web. The image itself is never uploaded.
+// Model/WASM assets are fetched on demand from IMG.LY's CDN and cached by
+// the browser; processing remains entirely on the user's device.
 
 export const imageRemoveBackground = async (files: ToolFile[], params: ToolParams, onProgress?: Progress): Promise<ToolOutput[]> => {
   const images = getFiles(files, 'image')
@@ -21,11 +21,10 @@ export const imageRemoveBackground = async (files: ToolFile[], params: ToolParam
 
   // The heavy AI bundle is dynamically imported — it never lands in the main chunk.
   const { removeBackground } = await import('@imgly/background-removal')
-  // The library joins resource paths with `new URL(..., publicPath)`, which needs
-  // an absolute base. Resolve from the app origin + Vite base path — NOT from
-  // document.baseURI, which in a client-routed SPA contains the current route
-  // (e.g. /tools/...) and would make the model fetch hit the SPA fallback.
-  const publicPath = `${window.location.origin}${import.meta.env.BASE_URL}models/background-removal/`
+  // Use the library's official CDN for the large model/WASM assets. This keeps
+  // the Vercel deployment lightweight while the actual image processing remains
+  // local in the browser.
+  const publicPath = 'https://staticimgly.com/@imgly/background-removal-data/1.7.0/dist/'
 
   const outputs: ToolOutput[] = []
   for (let i = 0; i < images.length; i += 1) {
