@@ -50,8 +50,15 @@ pnpm-debug.log*
 # Caches
 .eslintcache
 *.tsbuildinfo
+.vite/
 
 # OS
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Temporary scripts (one-off maintenance scripts)
+fix_*.py
+scratch_*.py
+*.tmp
+*.bak
