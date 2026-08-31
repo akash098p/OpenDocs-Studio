@@ -15,6 +15,8 @@
 
 No uploads. No accounts. No tracking. OpenDocs Studio ships **24 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
 
+---
+
 | | |
 |---|---|
 | 🧰 **24 tools** | 12 image · 12 PDF |
@@ -22,6 +24,23 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **24 production-read
 | 🆓 **Free for everyone** | No sign-in, no limits, no data collection |
 | ⚡ **Instant** | No round-trip to a server — results download immediately |
 
+---
+
+## 💻 Preview
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/8d4ed80a-bd24-4a4f-9a41-2b1794d7478b" controls width="100%";>
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/baa09f87-2216-47a9-9598-18567a5944ad" controls width="100%";>
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+👉 Visit this: 🟢[OpenDocs Studio](https://open-docs-studio.vercel.app/)
 ---
 
 ## 🧰 The Tools Suite
@@ -67,6 +86,8 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **24 production-read
 | **PDF Page Deleter** | Delete specific pages from a PDF by specifying page numbers or ranges. | Comma-separated page numbers (1-based) |
 | **PDF Page Reorderer** | Reorder pages in a PDF by specifying a new page order. | Comma-separated 1-based page numbers |
 | **PDF Page Numberer** | Add page numbers to all pages of a PDF with customizable position, font size, and color. | Position, start number, font size, color |
+
+---
 
 ### 🔒 Privacy by architecture
 
