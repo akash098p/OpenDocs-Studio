@@ -54,7 +54,7 @@ export const Layout: React.FC<LayoutProps> = ({
   ]
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen bg-gradient-to-br from-orange-100 via-amber-100 to-yellow-100 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950">
       <Sidebar
         items={sidebarItems.length > 0 ? sidebarItems : defaultSidebarItems}
         isOpen={sidebarOpen}
