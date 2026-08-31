@@ -139,7 +139,7 @@ export const SpreadsheetEditorPage: React.FC = () => {
                           type="text"
                           value={row[colIndex]?.value || ''}
                           onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                          className="w-full h-10 px-2 bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className="w-full h-10 px-2 bg-transparent border-0 focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-primary-500"
                           placeholder="-"
                         />
                       </td>
