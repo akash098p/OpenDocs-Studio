@@ -65,7 +65,7 @@ export const AdjustPreview: React.FC<AdjustPreviewProps> = ({ file, values }) =>
   }, [ready, showOriginal, values])
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900">
+    <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-900/70 backdrop-blur-sm p-3 dark:border-slate-700">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm font-semibold">Live preview</p>
         <div className="flex items-center gap-3">

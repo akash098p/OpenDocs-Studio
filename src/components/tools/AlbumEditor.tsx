@@ -339,7 +339,7 @@ export const AlbumEditor = forwardRef<AlbumEditorHandle, AlbumEditorProps>(({ fi
         </p>
       </aside>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800/40">
+      <div className="rounded-xl border border-slate-200 bg-white/70 dark:bg-slate-800/40 backdrop-blur-sm p-4 dark:border-slate-700">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Live preview</h3>
           <span className="text-xs text-slate-500 dark:text-slate-400">

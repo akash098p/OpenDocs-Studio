@@ -102,8 +102,8 @@ export const FileUpload: React.FC<FileUploadProps> = ({
         className={cn(
           'relative flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition-all duration-200',
           isDragging
-            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-            : 'border-slate-300 bg-slate-50 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-slate-500',
+            ? 'border-orange-500 bg-orange-50 dark:border-primary-500 dark:bg-primary-900/20'
+            : 'border-slate-300 bg-slate-50 hover:border-orange-400 dark:border-slate-600 dark:bg-slate-800 dark:hover:border-slate-500',
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}

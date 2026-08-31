@@ -24,7 +24,7 @@ const isVisible = (gate: { field: string; equals: string } | undefined, values: 
 
 const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (value: string) => void }> = ({ field, value, onChange }) => {
   const sharedClass =
-    'flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-primary-500'
+    'flex h-10 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-orange-500 dark:focus:ring-primary-500'
   if (field.type === 'select') {
     return (
       <select name={field.name} value={value} onChange={(event) => onChange(event.target.value)} className={sharedClass}>
@@ -84,7 +84,7 @@ const ToolFieldInput: React.FC<{ field: ToolField; value: string; onChange: (val
           max={field.max}
           step={field.step}
           onChange={(event) => onChange(event.target.value)}
-          className="min-w-0 flex-1 cursor-pointer accent-primary-600"
+          className="min-w-0 flex-1 cursor-pointer accent-orange-600 dark:accent-primary-600"
         />
         <span className="w-14 shrink-0 rounded-md bg-slate-100 py-0.5 text-center text-xs font-semibold tabular-nums text-slate-700 dark:bg-slate-800 dark:text-slate-300">
           {value}
@@ -296,7 +296,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
             {outputs ? (
               <OutputPreview outputs={outputs} onClear={handleClear} />
             ) : (
-              <div className="rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-900">
+              <div className="rounded-lg border-2 border-dashed border-orange-200 bg-white/50 dark:border-slate-700 dark:bg-slate-900/50 p-8 text-center backdrop-blur-sm">
                 <p className="font-semibold">Output appears here</p>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   Your files are processed entirely in this browser — nothing is uploaded anywhere.
@@ -308,7 +308,7 @@ export const ToolRunner: React.FC<ToolRunnerProps> = ({ tool, onBack }) => {
               <div className="mt-4">
                 <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
                   <div
-                    className="h-full rounded-full bg-primary-600 transition-all duration-300"
+                    className="h-full rounded-full bg-orange-600 dark:bg-primary-600 transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>

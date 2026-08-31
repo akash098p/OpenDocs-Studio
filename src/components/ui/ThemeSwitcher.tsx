@@ -11,7 +11,7 @@ export const ThemeSwitcher: React.FC = () => {
       className={cn(
         'relative inline-flex h-8 w-14 items-center rounded-full',
         'bg-slate-300 dark:bg-slate-600',
-        'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-slate-950',
+        'focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-primary-500 dark:focus:ring-offset-slate-950',
       )}
       aria-label="Toggle theme"
     >

@@ -10,7 +10,7 @@ export const Header: React.FC<HeaderProps> = ({ title, actions }) => {
   const { toggleSidebar } = useUIStore()
 
   return (
-    <header className="sticky top-0 z-20 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <header className="sticky top-0 z-20 border-b border-orange-300/60 dark:border-slate-800/60 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md">
       <div className="flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-4">
           <button

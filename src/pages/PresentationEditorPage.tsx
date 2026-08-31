@@ -110,7 +110,7 @@ export const PresentationEditorPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_1fr_200px]">
-          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm p-4 dark:border-slate-700">
             <p className="text-sm font-semibold mb-3">Slides ({slides.length})</p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {slides.map((slide, index) => (
@@ -119,7 +119,7 @@ export const PresentationEditorPage: React.FC = () => {
                   onClick={() => setCurrentSlideIndex(index)}
                   className={`w-full rounded p-2 text-left text-xs transition-colors ${
                     index === currentSlideIndex
-                      ? 'bg-primary-500 text-white'
+                      ? 'bg-orange-500 text-white dark:bg-primary-500'
                       : 'hover:bg-slate-100 dark:hover:bg-slate-800'
                   }`}
                 >
@@ -150,7 +150,7 @@ export const PresentationEditorPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
+          <div className="rounded-lg border border-slate-200 bg-white/70 dark:bg-slate-950/70 backdrop-blur-sm p-4 dark:border-slate-700">
             <p className="text-sm font-semibold mb-3">Actions</p>
             <div className="space-y-2">
               <Button
