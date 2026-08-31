@@ -13,6 +13,13 @@ import {
 import { batchRename, imageAlbum } from './imageBatchProcessors'
 import { imageRemoveBackground } from './backgroundRemoval'
 import {
+  textCaseConvert,
+  textFindReplace,
+  textWordCount,
+  textEncodingConvert,
+  textSortLines,
+} from './textProcessors'
+import {
   pdfMerge,
   pdfSplit,
   pdfRotate,
@@ -22,6 +29,9 @@ import {
   pdfWatermark,
   pdfProtect,
   pdfUnlock,
+  pdfDeletePages,
+  pdfReorderPages,
+  pdfAddPageNumbers,
 } from './pdfProcessors'
 
 export type Progress = (percent: number, message: string) => void
@@ -34,7 +44,8 @@ export const runTool = async (
 ): Promise<ToolOutput[]> => {
   switch (toolId) {
     case 'image-resize':
-      return imageResize(files, params, onProgress)    case 'image-crop-rotate':
+      return imageResize(files, params, onProgress)
+    case 'image-crop-rotate':
       return imageCropRotate(files, params, onProgress)
     case 'image-compress':
       return imageCompress(files, params, onProgress)
@@ -74,6 +85,22 @@ export const runTool = async (
       return pdfProtect(files, params, onProgress)
     case 'pdf-unlock':
       return pdfUnlock(files, params, onProgress)
+    case 'pdf-delete-pages':
+      return pdfDeletePages(files, params, onProgress)
+    case 'pdf-reorder-pages':
+      return pdfReorderPages(files, params, onProgress)
+    case 'pdf-page-numbers':
+      return pdfAddPageNumbers(files, params, onProgress)
+    case 'text-case-convert':
+      return textCaseConvert(files, params, onProgress)
+    case 'text-find-replace':
+      return textFindReplace(files, params, onProgress)
+    case 'text-word-count':
+      return textWordCount(files, params, onProgress)
+    case 'text-encoding':
+      return textEncodingConvert(files, params, onProgress)
+    case 'text-sort':
+      return textSortLines(files, params, onProgress)
     default:
       throw new Error(`Unknown tool: ${toolId}`)
   }
