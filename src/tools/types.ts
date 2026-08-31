@@ -1,4 +1,4 @@
-﻿export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font' | 'password' | 'range'
+﻿export type ToolFieldType = 'number' | 'select' | 'text' | 'color' | 'font' | 'password' | 'range' | 'textarea'
 
 export interface ToolField {
   name: string
@@ -25,10 +25,12 @@ export interface ToolInput {
   visibleWhen?: { field: string; equals: string }
 }
 
+export type ToolGroup = 'Image' | 'PDF' | 'Document'
+
 export interface ToolDefinition {
   id: string
   name: string
-  group: 'Image' | 'PDF'
+  group: ToolGroup
   icon: string
   description: string
   inputs: ToolInput[]
@@ -37,6 +39,8 @@ export interface ToolDefinition {
   editor?: 'crop-rotate' | 'resize' | 'album'
   /** Show a live preview panel that re-renders the first input as fields change. */
   livePreview?: boolean
+  /** Placeholder text shown when a tool has no file inputs. */
+  inputsPlaceholder?: string
 }
 
 export interface VisualEditorHandle {
