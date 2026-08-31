@@ -1,5 +1,5 @@
 import { ToolFile, ToolOutput, ToolParams } from './types'
-import { canvasToBlob, fileExtension, fileName, getFiles, loadImage, makeZip, mimeFor, numberParam, sanitizeFilename, stringParam } from './helpers'
+import { canvasToBlob, fileExtension, fileName, getFiles, loadImage, makeZip, mimeFor, numberParam, sanitizeFilename, stringParam, supportsAlpha } from './helpers'
 import { drawCanvas, Progress } from './imageProcessors'
 import { renderAlbum } from './albumRenderer'
 
@@ -32,7 +32,7 @@ export const batchRename = async (files: ToolFile[], params: ToolParams, onProgr
       blob = file.blob
     } else {
       const image = await loadImage(file.blob)
-      const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+      const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', supportsAlpha(ext))
       const outQuality =
         ext === 'jpg' || ext === 'jpeg'
           ? Math.max(0.1, Math.min(1, quality * 0.9))
