@@ -13,11 +13,11 @@
 
 **A privacy-first image & PDF toolbox that runs entirely in your browser.**
 
-No uploads. No accounts. No tracking. OpenDocs Studio ships **21 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
+No uploads. No accounts. No tracking. OpenDocs Studio ships **24 production-ready tools** for working with images and PDFs — every operation happens locally on your device using the Canvas API, pdf-lib, pdf.js and Web Crypto. Your files never leave your machine.
 
 | | |
 |---|---|
-| 🧰 **21 tools** | 12 image · 9 PDF |
+| 🧰 **24 tools** | 12 image · 12 PDF |
 | 🔒 **100% client-side** | Files are processed in-memory, never transmitted |
 | 🆓 **Free for everyone** | No sign-in, no limits, no data collection |
 | ⚡ **Instant** | No round-trip to a server — results download immediately |
@@ -51,7 +51,7 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **21 production-read
 
 
 
-### 📕 PDF Tools (9)
+### 📕 PDF Tools (12)
 
 | Tool | What it does | Key options |
 |------|-------------|------------|
@@ -64,6 +64,9 @@ No uploads. No accounts. No tracking. OpenDocs Studio ships **21 production-read
 | **PDF Splitter** | Extract page ranges into separate PDFs. | Ranges like `1-3,5,7-9` (bounds-checked) → returns a **ZIP** |
 | **PDF Merger** | Combine several PDF files into a single document. | Optional document-title metadata |
 | **PDF Page Rotator** | Fix sideways scans. | 90° / 180° / 270°, applied to all pages or a single page |
+| **PDF Page Deleter** | Delete specific pages from a PDF by specifying page numbers or ranges. | Comma-separated page numbers (1-based) |
+| **PDF Page Reorderer** | Reorder pages in a PDF by specifying a new page order. | Comma-separated 1-based page numbers |
+| **PDF Page Numberer** | Add page numbers to all pages of a PDF with customizable position, font size, and color. | Position, start number, font size, color |
 
 ### 🔒 Privacy by architecture
 
@@ -119,7 +122,7 @@ For production: `npm run build` produces a fully static site in `dist/` — depl
 ```
 src/
 ├── tools/                      # ★ The tool engine
-│   ├── registry.ts             #   All 21 tool definitions (inputs + form fields)
+│   ├── registry.ts             #   All 29 tool definitions (inputs + form fields)
 │   ├── types.ts                #   Shared tool contracts (ToolDefinition, ToolFile...)
 │   ├── helpers.ts              #   File pickers, downloads, ZIP, param helpers
 │   ├── index.ts                #   runTool() dispatcher
