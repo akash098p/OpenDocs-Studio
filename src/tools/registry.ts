@@ -1,4 +1,4 @@
-﻿import { ToolDefinition } from './types'
+﻿import { ToolDefinition, ToolGroup } from './types'
 
 export const toolDefinitions: ToolDefinition[] = [
   {
@@ -266,7 +266,7 @@ export const toolDefinitions: ToolDefinition[] = [
     inputs: [{ name: 'pdf', label: 'PDF files', accept: 'application/pdf', multiple: true }],
     fields: [{ name: 'title', label: 'Document title (optional)', type: 'text', default: '' }],
   },
-  {
+    {
     id: 'pdf-rotate',
     name: 'PDF Page Rotator',
     group: 'PDF',
@@ -278,9 +278,100 @@ export const toolDefinitions: ToolDefinition[] = [
       { name: 'pages', label: 'Pages (e.g. 1-3,5,7-9)', type: 'text', default: 'all' },
     ],
   },
+  {
+    id: 'pdf-delete-pages',
+    name: 'PDF Page Deleter',
+    group: 'PDF',
+    icon: '/tools-icons/pdf page delete.png',
+    description: 'Delete specific pages or page ranges (e.g. 1,3-5) from a PDF document.',
+    inputs: [{ name: 'pdf', label: 'PDF file', accept: 'application/pdf' }],
+    fields: [{ name: 'pages', label: 'Pages to delete (1-based, comma separated)', type: 'text', default: '1' }],
+  },
+  {
+    id: 'pdf-reorder-pages',
+    name: 'PDF Page Reorder',
+    group: 'PDF',
+    icon: '/tools-icons/pdf page reorder.png',
+    description: 'Reorder pages in a PDF — enter the desired page sequence (e.g. "3,1,2,4").',
+    inputs: [{ name: 'pdf', label: 'PDF file', accept: 'application/pdf' }],
+    fields: [{ name: 'order', label: 'New page order (1-based, comma separated)', type: 'text', default: '' }],
+  },
+  {
+    id: 'pdf-page-numbers',
+    name: 'PDF Page Numberer',
+    group: 'PDF',
+    icon: '/tools-icons/pdf page number.png',
+    description: 'Add page numbers to all pages of a PDF with customizable position, font size, and color.',
+    inputs: [{ name: 'pdf', label: 'PDF file', accept: 'application/pdf' }],
+    fields: [
+      { name: 'position', label: 'Position', type: 'select', options: ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'], default: 'bottom-center' },
+      { name: 'startFrom', label: 'Start page number from', type: 'number', default: 1, min: 1, max: 1000 },
+      { name: 'fontSize', label: 'Font size (pt)', type: 'number', default: 12, min: 6, max: 72 },
+      { name: 'color', label: 'Text color', type: 'color', default: '#000000' },
+    ],
+  },
+  {
+    id: 'text-case-convert',
+    name: 'Text Case Converter',
+    group: 'Document',
+    icon: '/tools-icons/pdf compressor.png',
+    description: 'Convert text between uppercase, lowercase, title case, and more.',
+    inputs: [{ name: 'text', label: 'Text file', accept: '.txt,.md,text/plain' }],
+    fields: [
+      { name: 'mode', label: 'Conversion mode', type: 'select', options: ['uppercase', 'lowercase', 'titlecase', 'capitalizewords', 'invertcase'], default: 'uppercase' },
+    ],
+  },
+  {
+    id: 'text-find-replace',
+    name: 'Find & Replace',
+    group: 'Document',
+    icon: '/tools-icons/metadata stripper.png',
+    description: 'Find and replace text across a document, with optional case-sensitivity and whole-word matching.',
+    inputs: [{ name: 'text', label: 'Text file', accept: '.txt,.md,text/plain' }],
+    fields: [
+      { name: 'find', label: 'Find', type: 'text', default: '' },
+      { name: 'replace', label: 'Replace with', type: 'text', default: '' },
+      { name: 'caseSensitive', label: 'Case sensitive', type: 'select', options: ['false', 'true'], default: 'false' },
+      { name: 'wholeWord', label: 'Whole word only', type: 'select', options: ['false', 'true'], default: 'false' },
+    ],
+  },
+  {
+    id: 'text-word-count',
+    name: 'Word Counter',
+    group: 'Document',
+    icon: '/tools-icons/image compressor.png',
+    description: 'Count words, characters, lines, and paragraphs in a text file and generate a full report.',
+    inputs: [{ name: 'text', label: 'Text file', accept: '.txt,.md,text/plain' }],
+    fields: [],
+  },
+  {
+    id: 'text-encoding',
+    name: 'Text Encoding Converter',
+    group: 'Document',
+    icon: '/tools-icons/base64 converter.png',
+    description: 'Convert text encoding between UTF-8, ASCII, Base64, and Hex.',
+    inputs: [{ name: 'text', label: 'Text file', accept: '.txt,.md,text/plain' }],
+    fields: [
+      { name: 'fromEncoding', label: 'Source encoding', type: 'select', options: ['auto', 'utf8', 'latin1'], default: 'auto' },
+      { name: 'toEncoding', label: 'Target encoding', type: 'select', options: ['utf8', 'ascii', 'base64', 'hex'], default: 'utf8' },
+    ],
+  },
+  {
+    id: 'text-sort',
+    name: 'Sort Lines',
+    group: 'Document',
+    icon: '/tools-icons/pdf splitter.png',
+    description: 'Sort text lines alphabetically (ascending or descending), optionally deduplicate and toggle case sensitivity.',
+    inputs: [{ name: 'text', label: 'Text file', accept: '.txt,.md,text/plain' }],
+    fields: [
+      { name: 'order', label: 'Sort order', type: 'select', options: ['ascending', 'descending'], default: 'ascending' },
+      { name: 'deduplicate', label: 'Remove duplicates', type: 'select', options: ['false', 'true'], default: 'false' },
+      { name: 'caseSensitive', label: 'Case sensitive', type: 'select', options: ['false', 'true'], default: 'false' },
+    ],
+  },
 ]
 
-export const toolsByGroup = (group: 'Image' | 'PDF'): ToolDefinition[] =>
+export const toolsByGroup = (group: ToolGroup): ToolDefinition[] =>
   toolDefinitions.filter((tool) => tool.group === group)
 
 export const getToolById = (id: string): ToolDefinition | undefined =>
