@@ -19,7 +19,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onSave
 }) => {
   return (
-    <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+    <div className="flex flex-wrap gap-1 border-b border-orange-200 bg-white/70 dark:border-slate-700 dark:bg-slate-900/70 backdrop-blur-sm p-3">
       <div className="flex gap-1 border-r border-slate-200 pr-2 dark:border-slate-700">
         <button
           type="button"
