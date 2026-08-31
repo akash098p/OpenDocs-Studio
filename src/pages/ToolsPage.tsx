@@ -6,8 +6,9 @@ import { ToolRunner } from '@components/tools/ToolRunner'
 import { useUIStore } from '@store/uiStore'
 import { getToolById, toolsByGroup, toolDefinitions } from '@/tools/registry'
 import { ToolDefinition } from '@/tools/types'
+import { ToolGroup } from '@/tools/types'
 
-const groupDescriptions: Record<'Image' | 'PDF', string> = {
+const groupDescriptions: Partial<Record<ToolGroup, string>> = {
   Image: 'Resize, crop, compress, convert, watermark and organize pictures — all locally in your browser.',
   PDF: 'Merge, split, rotate, convert and render PDF documents without uploading them anywhere.',
 }
@@ -43,7 +44,7 @@ export const ToolsPage: React.FC = () => {
           </p>
         </section>
 
-        {(['Image', 'PDF'] as const).map((group) => (
+        {(['Image', 'PDF'] as ToolGroup[]).map((group) => (
           <section key={group}>
             <div className="mb-4 flex items-baseline justify-between">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{group} tools</h3>
