@@ -72,6 +72,27 @@ export const FilesPage: React.FC = () => {
     }
   }
 
+  const handleCreateDocument = () => {
+    const userId = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const docName = `New Document-${Date.now().toString().slice(-6)}.txt`
+    addDocument({
+      id: crypto.randomUUID(),
+      name: docName,
+      type: 'txt',
+      size: 0,
+      createdAt: now,
+      updatedAt: now,
+      ownerId: userId,
+      shared: false,
+      views: 0,
+    })
+    addNotification({
+      type: 'success',
+      message: 'New document created. You can edit it now.',
+    })
+  }
+
   const handleDelete = (documentId: string) => {
     removeDocument(documentId)
     addNotification({
@@ -112,6 +133,9 @@ export const FilesPage: React.FC = () => {
                 />
                 <Button type="button" className="w-full md:w-auto" onClick={() => inputRef.current?.click()}>
                   Upload files
+                </Button>
+                <Button type="button" variant="secondary" className="w-full md:w-auto" onClick={handleCreateDocument}>
+                  New document
                 </Button>
               </div>
             </div>
