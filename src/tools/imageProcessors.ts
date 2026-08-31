@@ -13,6 +13,7 @@ import {
   numberParam,
   sanitizeFilename,
   stringParam,
+  supportsAlpha,
 } from './helpers'
 
 export type Progress = (percent: number, message: string) => void
@@ -26,6 +27,7 @@ export const drawCanvas = (
   width: number,
   height: number,
   smoothing: 'high' | 'medium' | 'low' | 'off' = 'high',
+  transparent = false,
 ): HTMLCanvasElement => {
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -39,8 +41,15 @@ export const drawCanvas = (
     ctx.imageSmoothingEnabled = true
     ctx.imageSmoothingQuality = smoothing
   }
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, width, height)
+  if (transparent) {
+    // Clear the canvas so the image's alpha channel is preserved.
+    ctx.clearRect(0, 0, width, height)
+  } else {
+    // JPG / BMP / other no-alpha formats — flatten onto white to avoid
+    // dark or weird-color "transparent" pixels in the final image.
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, width, height)
+  }
   ctx.drawImage(image, 0, 0, width, height)
   return canvas
 }
@@ -84,8 +93,8 @@ export const imageResize = async (files: ToolFile[], params: ToolParams, onProgr
   const smoothing = algo === 'nearest' ? 'off' : algo === 'bilinear' || algo === 'area' ? 'medium' : 'high'
 
   onProgress?.(50, 'Scaling…')
-  const canvas = drawCanvas(image, outW, outH, smoothing)
   const ext = fileExtension(getFile(files, 'image').name) || 'png'
+  const canvas = drawCanvas(image, outW, outH, smoothing, supportsAlpha(ext))
   const blob = await canvasToBlob(canvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(getFile(files, 'image'), 'resized', ext), blob }]
@@ -168,14 +177,14 @@ const findPngColorCountForTargetSize = async (image: HTMLImageElement, target: n
   let best: Blob | null = null
   for (let iter = 0; iter < 7; iter += 1) {
     const colors = Math.round((low + high) / 2)
-    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', true)
     const blob = await canvasToCompressedPng(canvas, colors)
     if (!best || blob.size < best.size) best = blob
     if (blob.size <= target) low = colors
     else high = colors
   }
   // One final pass at the lower bound to be sure we land at or below target.
-  const finalCanvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const finalCanvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', true)
   const finalBlob = await canvasToCompressedPng(finalCanvas, low)
   if (!best || finalBlob.size < best.size) best = finalBlob
   return best!
@@ -206,7 +215,9 @@ export const imageCompress = async (files: ToolFile[], params: ToolParams, onPro
 
     onProgress?.(Math.round((i / images.length) * 90) + 5, `Loading ${file.name}...`)
     const image = await loadImage(file.blob)
-    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+    // Preserve alpha when the chosen output format supports it (PNG/WebP/etc);
+    // flatten onto white otherwise (JPG / cross-format lossless).
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', supportsAlpha(normalizedExt))
 
     let blob: Blob
     if (isLossyExt(normalizedExt)) {
@@ -267,7 +278,7 @@ export const imageConvert = async (files: ToolFile[], params: ToolParams, onProg
     const file = images[i]
     onProgress?.(Math.round((i / images.length) * 90) + 5, `Converting ${i + 1}/${images.length}…`)
     const image = await loadImage(file.blob)
-    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+    const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', supportsAlpha(normalizedFormat))
     const blob = await canvasToBlob(canvas, mime, outQuality)
     outputs.push({ name: `converted-${file.name.replace(/\.[^.]+$/, '')}.${normalizedFormat}`, blob })
   }
@@ -382,7 +393,7 @@ export const imageStripExif = async (files: ToolFile[], params: ToolParams, onPr
 
   onProgress?.(10, 'Loading image…')
   const image = await loadImage(file.blob)
-  const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight)
+  const canvas = drawCanvas(image, image.naturalWidth, image.naturalHeight, 'high', supportsAlpha(ext))
 
   onProgress?.(50, 'Re-encoding…')
   const blob = await canvasToBlob(canvas, mimeFor(ext), ext === 'jpg' ? 0.9 : undefined)
@@ -404,6 +415,9 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   const image = await loadImage(input.blob)
   const srcW = image.naturalWidth
   const srcH = image.naturalHeight
+  // Output extension — used to decide whether to preserve transparency (PNG/WebP/...)
+  // or flatten onto white (JPG / other no-alpha formats).
+  const ext = fileExtension(input.name) || 'png'
 
   // Dimensions after rotation
   const swapped = rotate === 90 || rotate === 270
@@ -417,8 +431,13 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   rotCanvas.height = rotH
   const rotCtx = rotCanvas.getContext('2d')
   if (!rotCtx) throw new Error('Could not create canvas context.')
-  rotCtx.fillStyle = '#ffffff'
-  rotCtx.fillRect(0, 0, rotW, rotH)
+  // Keep alpha when the output format supports it (PNG / WebP / etc.).
+  if (!supportsAlpha(ext)) {
+    rotCtx.fillStyle = '#ffffff'
+    rotCtx.fillRect(0, 0, rotW, rotH)
+  } else {
+    rotCtx.clearRect(0, 0, rotW, rotH)
+  }
   rotCtx.save()
   rotCtx.translate(rotW / 2, rotH / 2)
   rotCtx.rotate((rotate * Math.PI) / 180)
@@ -437,12 +456,15 @@ export const imageCropRotate = async (files: ToolFile[], params: ToolParams, onP
   outCanvas.height = ch
   const outCtx = outCanvas.getContext('2d')
   if (!outCtx) throw new Error('Could not create canvas context.')
-  outCtx.fillStyle = '#ffffff'
-  outCtx.fillRect(0, 0, cw, ch)
+  if (!supportsAlpha(ext)) {
+    outCtx.fillStyle = '#ffffff'
+    outCtx.fillRect(0, 0, cw, ch)
+  } else {
+    outCtx.clearRect(0, 0, cw, ch)
+  }
   outCtx.drawImage(rotCanvas, cx, cy, cw, ch, 0, 0, cw, ch)
 
   onProgress?.(90, 'Encoding…')
-  const ext = fileExtension(input.name) || 'png'
   const blob = await canvasToBlob(outCanvas, mimeFor(ext), 0.92)
   onProgress?.(100, 'Done.')
   return [{ name: outputName(input, 'cropped', ext), blob }]
