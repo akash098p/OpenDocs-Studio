@@ -55,6 +55,12 @@ const mimeMap: Record<string, string> = {
 
 export const mimeFor = (ext: string): string => mimeMap[ext.toLowerCase()] || 'application/octet-stream'
 
+/** Returns true if the given extension supports an alpha (transparency) channel. */
+export const supportsAlpha = (ext: string): boolean => {
+  const e = ext.toLowerCase()
+  return e === 'png' || e === 'webp' || e === 'gif' || e === 'bmp' || e === 'avif' || e === 'ico'
+}
+
 export const loadImage = (blob: Blob): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const url = URL.createObjectURL(blob)
