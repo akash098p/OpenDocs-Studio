@@ -14,6 +14,8 @@ interface FileManagerStore extends FileManagerState {
   addDocument: (document: Document) => void
   removeDocument: (id: string) => void
   updateDocument: (id: string, updates: Partial<Document>) => void
+  renameDocument: (id: string, newName: string) => void
+  saveDocumentContent: (id: string, content: string) => void
 }
 
 export const useFileManagerStore = create<FileManagerStore>()(
@@ -49,6 +51,18 @@ export const useFileManagerStore = create<FileManagerStore>()(
       updateDocument: (id, updates) =>
         set((state) => ({
           documents: state.documents.map((doc) => (doc.id === id ? { ...doc, ...updates } : doc)),
+        })),
+      renameDocument: (id, newName) =>
+        set((state) => ({
+          documents: state.documents.map((doc) =>
+            doc.id === id ? { ...doc, name: newName, updatedAt: new Date().toISOString() } : doc,
+          ),
+        })),
+      saveDocumentContent: (id, _content) =>
+        set((state) => ({
+          documents: state.documents.map((doc) =>
+            doc.id === id ? { ...doc, updatedAt: new Date().toISOString(), size: new Blob([_content]).size } : doc,
+          ),
         })),
     }),
     {
