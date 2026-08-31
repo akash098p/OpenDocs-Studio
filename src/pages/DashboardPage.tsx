@@ -83,7 +83,7 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={handleCreateDocument}
-                className="rounded-lg border border-slate-200 p-4 text-left transition-colors hover:border-primary-400 dark:border-slate-700 dark:hover:border-primary-500"
+                className="rounded-lg border border-slate-200 p-4 text-left transition-colors hover:border-orange-400 dark:border-slate-700 dark:hover:border-primary-500"
               >
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">New document</span>
                 <span className="mt-2 block text-sm text-slate-600 dark:text-slate-400">
@@ -93,7 +93,7 @@ export const DashboardPage: React.FC = () => {
 
               <Link
                 to="/files"
-                className="rounded-lg border border-slate-200 p-4 transition-colors hover:border-primary-400 dark:border-slate-700 dark:hover:border-primary-500"
+                className="rounded-lg border border-slate-200 p-4 transition-colors hover:border-orange-400 dark:border-slate-700 dark:hover:border-primary-500"
               >
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">Open files</span>
                 <span className="mt-2 block text-sm text-slate-600 dark:text-slate-400">
@@ -103,7 +103,7 @@ export const DashboardPage: React.FC = () => {
 
               <Link
                 to="/tools"
-                className="rounded-lg border border-slate-200 p-4 transition-colors hover:border-primary-400 dark:border-slate-700 dark:hover:border-primary-500"
+                className="rounded-lg border border-slate-200 p-4 transition-colors hover:border-orange-400 dark:border-slate-700 dark:hover:border-primary-500"
               >
                 <span className="text-sm font-semibold text-slate-900 dark:text-white">View tools</span>
                 <span className="mt-2 block text-sm text-slate-600 dark:text-slate-400">
@@ -124,7 +124,7 @@ export const DashboardPage: React.FC = () => {
               <div className="space-y-3">
                 {recentDocuments.map((document) => (
                   <Link key={document.id} to={getEditorRoute(document.type, document.id)}>
-                    <div className="rounded-lg border border-slate-200 p-3 transition-colors hover:border-primary-400 dark:border-slate-700 dark:hover:border-primary-500">
+                    <div className="rounded-lg border border-slate-200 p-3 transition-colors hover:border-orange-400 dark:border-slate-700 dark:hover:border-primary-500">
                       <p className="truncate text-sm font-semibold">{document.name}</p>
                       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{formatFileSize(document.size)}</p>
                     </div>
