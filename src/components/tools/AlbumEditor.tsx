@@ -192,10 +192,6 @@ export const AlbumEditor = forwardRef<AlbumEditorHandle, AlbumEditorProps>(({ fi
     if (!canvas) return
     const sources = images.length > 0 ? images : (placeholderRef.current ?? [])
     if (sources.length === 0) return
-    const previewSize = 1200
-    const aspect = images.length > 0 ? images[0].naturalWidth / images[0].naturalHeight : 4 / 3
-    canvas.width = previewSize
-    canvas.height = Math.round(previewSize / aspect)
     try {
       const rendered = renderAlbum({
         images: sources,
@@ -210,6 +206,13 @@ export const AlbumEditor = forwardRef<AlbumEditorHandle, AlbumEditorProps>(({ fi
         frameColor,
         background,
       })
+      // Use the actual rendered album's aspect ratio so the preview canvas
+      // matches the real output (no vertical stretching for wide templates
+      // like Film Strip, or horizontal stretching for tall templates like Hero).
+      const maxPreviewWidth = 1200
+      const scale = rendered.width > 0 ? maxPreviewWidth / rendered.width : 1
+      canvas.width = maxPreviewWidth
+      canvas.height = Math.max(1, Math.round(rendered.height * scale))
       const ctx = canvas.getContext('2d')
       if (ctx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height)
