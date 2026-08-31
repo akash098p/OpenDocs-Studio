@@ -309,7 +309,7 @@ ${content.replace(/\n/g, '<br>\n')}
             ) : (
               <>
                 <h1
-                  className="text-2xl font-bold cursor-pointer hover:text-primary-600 transition-colors"
+                  className="text-2xl font-bold cursor-pointer hover:text-orange-600 transition-colors dark:hover:text-primary-600"
                   onClick={() => setIsRenaming(true)}
                   title="Click to rename"
                 >
@@ -317,7 +317,7 @@ ${content.replace(/\n/g, '<br>\n')}
                 </h1>
                 <button
                   onClick={() => setIsRenaming(true)}
-                  className="text-slate-400 hover:text-primary-600 transition-colors"
+                  className="text-slate-400 hover:text-orange-600 transition-colors dark:hover:text-primary-600"
                   title="Rename document"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +336,7 @@ ${content.replace(/\n/g, '<br>\n')}
                 Export ▾
               </Button>
               {showExportMenu && (
-                <div className="absolute right-0 mt-1 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900 z-10">
+                <div className="absolute right-0 mt-1 w-48 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900 z-10 backdrop-blur-sm">
                   <button onClick={handleExportTXT} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-t-lg">
                     📄 Export as TXT
                   </button>
